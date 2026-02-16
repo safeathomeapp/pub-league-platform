@@ -15,6 +15,10 @@ export default async function Home() {
     <main>
       <h1>Pub League Platform</h1>
       <p>Admin-first league management (UK).</p>
+      <p>
+        <a href="/login">Login</a> | <a href="/register">Register</a> | <a href="/orgs">Organisations</a> |{' '}
+        <a href="/schedule">Schedule</a>
+      </p>
       <h2>API health</h2>
       <pre>{JSON.stringify(health, null, 2)}</pre>
       <p>
