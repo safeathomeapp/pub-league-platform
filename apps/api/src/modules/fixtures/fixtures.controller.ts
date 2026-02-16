@@ -13,7 +13,7 @@ import { FixturesService } from './fixtures.service';
 export class FixturesController {
   constructor(private fixtures: FixturesService) {}
 
-  @Post('divisions/:divisionId/fixtures:generate')
+  @Post('divisions/:divisionId/fixtures\\:generate')
   @Roles('ORG_ADMIN', 'COMMISSIONER')
   generate(@Param() params: GenerateRoundRobinParamsDto) {
     return this.fixtures.generateForDivision(params.orgId, params.divisionId);

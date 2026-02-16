@@ -10,6 +10,7 @@ import { LeaguesModule } from '../leagues/leagues.module';
 import { SeasonsModule } from '../seasons/seasons.module';
 import { TeamsPlayersModule } from '../teams-players/teams-players.module';
 import { CalendarModule } from '../calendar/calendar.module';
+import { TokensModule } from '../tokens/tokens.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from '../../common/middleware/request-id.middleware';
 
@@ -26,6 +27,7 @@ import { RequestIdMiddleware } from '../../common/middleware/request-id.middlewa
     SeasonsModule,
     TeamsPlayersModule,
     CalendarModule,
+    TokensModule,
   ],
   controllers: [HealthController],
 })
