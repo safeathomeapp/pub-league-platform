@@ -114,3 +114,6 @@ Admin-focused outbox filters:
 - MVP is admin-first league operations.
 - No payments in MVP.
 - Event log is append-only; corrections use compensating events.
+
+## 10) UAT Checklist
+- Beta tester checklist: `docs/24-UAT-Checklist-Beta.md`

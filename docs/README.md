@@ -18,7 +18,8 @@ This pack is ordered. Read top to bottom.
 13. [12-Backlog-MVP-User-Stories.md](12-Backlog-MVP-User-Stories.md)
 14. [13-Pricing-GoToMarket-and-ROI.md](13-Pricing-GoToMarket-and-ROI.md)
 15. [23-Minimal-Help-and-Runbook.md](23-Minimal-Help-and-Runbook.md)
+16. [24-UAT-Checklist-Beta.md](24-UAT-Checklist-Beta.md)
 
 A zipped bundle is provided alongside individual files.
 
-16. [22-Milestone1-Implementation-Plan-Auth-Orgs-Roles.md](22-Milestone1-Implementation-Plan-Auth-Orgs-Roles.md)
+17. [22-Milestone1-Implementation-Plan-Auth-Orgs-Roles.md](22-Milestone1-Implementation-Plan-Auth-Orgs-Roles.md)

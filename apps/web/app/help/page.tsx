@@ -36,6 +36,9 @@ export default function HelpPage() {
       <p>
         Full runbook: <code>docs/23-Minimal-Help-and-Runbook.md</code>
       </p>
+      <p>
+        UAT checklist: <code>docs/24-UAT-Checklist-Beta.md</code>
+      </p>
     </main>
   );
 }
