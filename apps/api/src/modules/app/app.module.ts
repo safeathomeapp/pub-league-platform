@@ -7,6 +7,7 @@ import { MembershipsModule } from '../memberships/memberships.module';
 import { FixturesModule } from '../fixtures/fixtures.module';
 import { RulesetsModule } from '../rulesets/rulesets.module';
 import { LeaguesModule } from '../leagues/leagues.module';
+import { SeasonsModule } from '../seasons/seasons.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from '../../common/middleware/request-id.middleware';
 
@@ -20,6 +21,7 @@ import { RequestIdMiddleware } from '../../common/middleware/request-id.middlewa
     FixturesModule,
     RulesetsModule,
     LeaguesModule,
+    SeasonsModule,
   ],
   controllers: [HealthController],
 })
