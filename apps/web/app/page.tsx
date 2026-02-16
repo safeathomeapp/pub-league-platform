@@ -17,7 +17,7 @@ export default async function Home() {
       <p>Admin-first league management (UK).</p>
       <p>
         <a href="/login">Login</a> | <a href="/register">Register</a> | <a href="/orgs">Organisations</a> |{' '}
-        <a href="/schedule">Schedule</a>
+        <a href="/schedule">Schedule</a> | <a href="/onboarding">Demo Onboarding</a>
       </p>
       <h2>API health</h2>
       <pre>{JSON.stringify(health, null, 2)}</pre>

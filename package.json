@@ -12,6 +12,7 @@
     "format": "npm run -ws format",
     "db:push": "npm --workspace apps/api run db:push",
     "db:migrate": "npm --workspace apps/api run db:migrate",
-    "db:studio": "npm --workspace apps/api run db:studio"
+    "db:studio": "npm --workspace apps/api run db:studio",
+    "seed:demo": "npm --workspace apps/api run seed:demo"
   }
 }
