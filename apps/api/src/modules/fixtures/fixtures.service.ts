@@ -62,6 +62,54 @@ export class FixturesService {
     };
   }
 
+  async listForDivision(orgId: string, divisionId: string) {
+    await this.assertDivisionInOrg(orgId, divisionId);
+    return this.prisma.fixture.findMany({
+      where: { divisionId },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+      },
+      orderBy: [{ scheduledAt: 'asc' }, { id: 'asc' }],
+    });
+  }
+
+  async getById(orgId: string, fixtureId: string) {
+    const fixture = await this.prisma.fixture.findFirst({
+      where: {
+        id: fixtureId,
+        division: { season: { league: { organisationId: orgId } } },
+      },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+      },
+    });
+    if (!fixture) throw new NotFoundException('Fixture not found');
+    return fixture;
+  }
+
+  async update(
+    orgId: string,
+    fixtureId: string,
+    data: { scheduledAt?: string; status?: string },
+  ) {
+    await this.getById(orgId, fixtureId);
+
+    // Restrict patch behavior to explicit fields to avoid accidental model drift.
+    return this.prisma.fixture.update({
+      where: { id: fixtureId },
+      data: {
+        ...(data.scheduledAt !== undefined ? { scheduledAt: new Date(data.scheduledAt) } : {}),
+        ...(data.status !== undefined ? { status: data.status as any } : {}),
+      },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+      },
+    });
+  }
+
   private async assertDivisionInOrg(orgId: string, divisionId: string): Promise<void> {
     const division = await this.prisma.division.findFirst({
       where: {

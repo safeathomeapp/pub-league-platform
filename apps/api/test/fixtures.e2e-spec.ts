@@ -17,10 +17,13 @@ describe('fixtures (e2e)', () => {
 
   it('generates round-robin fixtures for a division with null scheduledAt', async () => {
     const email = `fixtures_${Date.now()}@example.com`;
+    const outsiderEmail = `fixtures_outsider_${Date.now()}@example.com`;
     const password = 'password1234';
 
     const reg = await api(app).post('/api/v1/auth/register').send({ email, password }).expect(201);
     const token = reg.body.accessToken;
+    const outsiderReg = await api(app).post('/api/v1/auth/register').send({ email: outsiderEmail, password }).expect(201);
+    const outsiderToken = outsiderReg.body.accessToken;
 
     const org = await api(app).post('/api/v1/orgs').set('Authorization', `Bearer ${token}`).send({ name: 'Fixture Org' }).expect(201);
     const orgId = org.body.id;
@@ -94,6 +97,36 @@ describe('fixtures (e2e)', () => {
       .expect(201);
 
     expect(secondGenerate.body.createdCount).toBe(0);
+
+    const listed = await api(app)
+      .get(`/api/v1/orgs/${orgId}/divisions/${division.id}/fixtures`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(Array.isArray(listed.body)).toBe(true);
+    expect(listed.body).toHaveLength(6);
+
+    const targetFixtureId = listed.body[0].id as string;
+    const fetched = await api(app)
+      .get(`/api/v1/orgs/${orgId}/fixtures/${targetFixtureId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(fetched.body.id).toBe(targetFixtureId);
+
+    const patched = await api(app)
+      .patch(`/api/v1/orgs/${orgId}/fixtures/${targetFixtureId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        scheduledAt: '2026-04-15T19:30:00.000Z',
+        status: 'in_progress',
+      })
+      .expect(200);
+    expect(patched.body.status).toBe('in_progress');
+    expect(patched.body.scheduledAt).toBe('2026-04-15T19:30:00.000Z');
+
+    await api(app)
+      .get(`/api/v1/orgs/${orgId}/divisions/${division.id}/fixtures`)
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .expect(403);
 
     const fixtureCount = await prisma.fixture.count({ where: { divisionId: division.id } });
     expect(fixtureCount).toBe(6);
