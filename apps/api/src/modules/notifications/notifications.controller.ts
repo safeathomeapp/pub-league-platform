@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { OrgMembershipGuard } from '../../common/guards/org-membership.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ListOutboxQueryDto } from './dto/list-outbox-query.dto';
 import { SendTestNotificationDto } from './dto/send-test-notification.dto';
 import { NotificationsService } from './notifications.service';
 
@@ -13,8 +14,12 @@ export class NotificationsController {
 
   @Get('outbox')
   @Roles('ORG_ADMIN', 'COMMISSIONER')
-  listOutbox(@Param('orgId') orgId: string) {
-    return this.notifications.listOutbox(orgId);
+  listOutbox(@Param('orgId') orgId: string, @Query() query: ListOutboxQueryDto) {
+    return this.notifications.listOutbox(orgId, {
+      status: query.status as 'pending' | 'sending' | 'sent' | 'failed' | undefined,
+      channel: query.channel as 'sms' | 'whatsapp' | 'email' | undefined,
+      templateKey: query.templateKey,
+    });
   }
 
   @Post('test')

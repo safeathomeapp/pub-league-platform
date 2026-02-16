@@ -12,7 +12,7 @@ describe('notifications (e2e)', () => {
     await app.close();
   });
 
-  it('queues fixture change/reminder notifications and supports outbox admin endpoints', async () => {
+  it('queues fixture change/reminder/completed notifications and supports outbox admin endpoints', async () => {
     const ownerEmail = `notifications_owner_${Date.now()}@example.com`;
     const outsiderEmail = `notifications_outsider_${Date.now()}@example.com`;
     const password = 'password1234';
@@ -108,6 +108,12 @@ describe('notifications (e2e)', () => {
       .send({ scheduledAt: '2026-07-20T19:30:00.000Z', status: 'scheduled' })
       .expect(200);
 
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}/complete`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ expectedRevision: 0, homeFrames: 7, awayFrames: 5 })
+      .expect(201);
+
     const outbox = await api(app)
       .get(`/api/v1/orgs/${orgId}/notifications/outbox`)
       .set('Authorization', `Bearer ${ownerToken}`)
@@ -116,6 +122,21 @@ describe('notifications (e2e)', () => {
     const templateKeys = outbox.body.map((item: any) => item.templateKey);
     expect(templateKeys).toContain('fixture.changed');
     expect(templateKeys).toContain('fixture.reminder');
+    expect(templateKeys).toContain('fixture.completed');
+
+    const completedOnly = await api(app)
+      .get(`/api/v1/orgs/${orgId}/notifications/outbox?templateKey=fixture.completed`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(completedOnly.body.length).toBeGreaterThanOrEqual(2);
+    expect(completedOnly.body.every((item: any) => item.templateKey === 'fixture.completed')).toBe(true);
+
+    const pendingOnly = await api(app)
+      .get(`/api/v1/orgs/${orgId}/notifications/outbox?status=pending&channel=sms`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(pendingOnly.body.length).toBeGreaterThanOrEqual(1);
+    expect(pendingOnly.body.every((item: any) => item.status === 'pending')).toBe(true);
 
     const testQueued = await api(app)
       .post(`/api/v1/orgs/${orgId}/notifications/test`)

@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { StandingsService } from '../standings/standings.service';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class MatchEventsService {
   constructor(
     private prisma: PrismaService,
     private standings: StandingsService,
+    private notifications: NotificationsService,
   ) {}
 
   async append(
@@ -91,6 +93,8 @@ export class MatchEventsService {
       // Keep snapshots warm immediately after match completion.
       await this.standings.recomputeAndSnapshot(orgId, fixture.divisionId);
     }
+
+    await this.notifications.queueFixtureCompleted(orgId, fixtureId, data.homeFrames, data.awayFrames);
 
     return event;
   }

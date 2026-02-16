@@ -5,9 +5,17 @@ import { PrismaService } from '../db/prisma.service';
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
-  async listOutbox(orgId: string) {
+  async listOutbox(
+    orgId: string,
+    query?: { status?: 'pending' | 'sending' | 'sent' | 'failed'; channel?: 'sms' | 'whatsapp' | 'email'; templateKey?: string },
+  ) {
     return this.prisma.notificationOutbox.findMany({
-      where: { organisationId: orgId },
+      where: {
+        organisationId: orgId,
+        ...(query?.status ? { status: query.status } : {}),
+        ...(query?.channel ? { channel: query.channel } : {}),
+        ...(query?.templateKey ? { templateKey: query.templateKey } : {}),
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
   }
@@ -99,6 +107,61 @@ export class NotificationsService {
 
         return records;
       }),
+    );
+  }
+
+  async queueFixtureCompleted(orgId: string, fixtureId: string, homeFrames: number, awayFrames: number) {
+    const fixture = await this.prisma.fixture.findFirst({
+      where: {
+        id: fixtureId,
+        division: { season: { league: { organisationId: orgId } } },
+      },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+      },
+    });
+    if (!fixture) throw new NotFoundException('Fixture not found');
+
+    const captains = await this.prisma.teamPlayer.findMany({
+      where: {
+        role: 'CAPTAIN',
+        teamId: { in: [fixture.homeTeamId, fixture.awayTeamId] },
+        player: { organisationId: orgId, contactPhone: { not: null } },
+      },
+      include: { player: true },
+    });
+
+    const uniquePhones = Array.from(
+      new Set(
+        captains
+          .map(captain => captain.player.contactPhone)
+          .filter((phone): phone is string => typeof phone === 'string' && phone.length > 0),
+      ),
+    );
+    if (uniquePhones.length === 0) return;
+
+    const templateVars = {
+      fixture_id: fixture.id,
+      home_team: fixture.homeTeam.name,
+      away_team: fixture.awayTeam.name,
+      home_frames: homeFrames,
+      away_frames: awayFrames,
+    };
+
+    await this.prisma.$transaction(
+      uniquePhones.map(phone =>
+        this.prisma.notificationOutbox.create({
+          data: {
+            organisationId: orgId,
+            channel: 'sms',
+            to: phone,
+            templateKey: 'fixture.completed',
+            templateVars,
+            scheduledFor: new Date(),
+          },
+        }),
+      ),
     );
   }
 }

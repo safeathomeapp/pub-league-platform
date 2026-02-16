@@ -79,6 +79,9 @@ export class NotificationsWorker implements OnModuleInit, OnModuleDestroy {
     if (templateKey === 'fixture.changed') {
       return `Fixture updated: ${safeVars.home_team ?? 'Home'} vs ${safeVars.away_team ?? 'Away'} at ${safeVars.scheduled_at ?? ''}`;
     }
+    if (templateKey === 'fixture.completed') {
+      return `Result: ${safeVars.home_team ?? 'Home'} ${safeVars.home_frames ?? '-'}-${safeVars.away_frames ?? '-'} ${safeVars.away_team ?? 'Away'}`;
+    }
     return (safeVars.message as string | undefined) ?? 'Notification';
   }
 }
