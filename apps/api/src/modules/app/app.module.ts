@@ -14,6 +14,7 @@ import { TokensModule } from '../tokens/tokens.module';
 import { MatchEventsModule } from '../match-events/match-events.module';
 import { StandingsModule } from '../standings/standings.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { DisputesModule } from '../disputes/disputes.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from '../../common/middleware/request-id.middleware';
 
@@ -34,6 +35,7 @@ import { RequestIdMiddleware } from '../../common/middleware/request-id.middlewa
     MatchEventsModule,
     StandingsModule,
     NotificationsModule,
+    DisputesModule,
   ],
   controllers: [HealthController],
 })
