@@ -1,10 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../db/prisma.service';
 import { GenerateRoundRobinResponseDto } from './dto/generate-round-robin-response.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class FixturesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async generateForDivision(orgId: string, divisionId: string): Promise<GenerateRoundRobinResponseDto> {
     await this.assertDivisionInOrg(orgId, divisionId);
@@ -106,10 +110,10 @@ export class FixturesService {
     fixtureId: string,
     data: { scheduledAt?: string; status?: string },
   ) {
-    await this.getById(orgId, fixtureId);
+    const existing = await this.getById(orgId, fixtureId);
 
     // Restrict patch behavior to explicit fields to avoid accidental model drift.
-    return this.prisma.fixture.update({
+    const updated = await this.prisma.fixture.update({
       where: { id: fixtureId },
       data: {
         ...(data.scheduledAt !== undefined ? { scheduledAt: new Date(data.scheduledAt) } : {}),
@@ -120,6 +124,15 @@ export class FixturesService {
         awayTeam: true,
       },
     });
+
+    const scheduledChanged = data.scheduledAt !== undefined
+      && (existing.scheduledAt?.toISOString() ?? null) !== (updated.scheduledAt?.toISOString() ?? null);
+    if (scheduledChanged && updated.scheduledAt) {
+      // Queue fixture change + reminder notifications through outbox pattern.
+      await this.notifications.queueFixtureChangeAndReminder(orgId, fixtureId, updated.scheduledAt);
+    }
+
+    return updated;
   }
 
   private async assertDivisionInOrg(orgId: string, divisionId: string): Promise<void> {

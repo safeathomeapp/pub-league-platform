@@ -73,27 +73,30 @@ describe('standings (e2e)', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .expect(200);
 
-    const findFixtureId = (teamOne: string, teamTwo: string) =>
+    const findFixture = (teamOne: string, teamTwo: string) =>
       fixtures.body.find((fixture: any) => {
         const teams = [fixture.homeTeam.name, fixture.awayTeam.name].sort();
         return teams[0] === [teamOne, teamTwo].sort()[0] && teams[1] === [teamOne, teamTwo].sort()[1];
-      })?.id as string;
+      }) as any;
 
-    const fixtureAB = findFixtureId('Team A', 'Team B');
-    const fixtureAC = findFixtureId('Team A', 'Team C');
+    const fixtureAB = findFixture('Team A', 'Team B');
+    const fixtureAC = findFixture('Team A', 'Team C');
     expect(fixtureAB).toBeTruthy();
     expect(fixtureAC).toBeTruthy();
 
+    const scoreForTeamAWin = (fixture: any) =>
+      fixture.homeTeam.name === 'Team A' ? { homeFrames: 7, awayFrames: 3 } : { homeFrames: 3, awayFrames: 7 };
+
     await api(app)
-      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureAB}/complete`)
+      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureAB.id}/complete`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ expectedRevision: 0, homeFrames: 7, awayFrames: 3 })
+      .send({ expectedRevision: 0, ...scoreForTeamAWin(fixtureAB) })
       .expect(201);
 
     await api(app)
-      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureAC}/complete`)
+      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureAC.id}/complete`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ expectedRevision: 0, homeFrames: 7, awayFrames: 4 })
+      .send({ expectedRevision: 0, ...scoreForTeamAWin(fixtureAC) })
       .expect(201);
 
     const standingsOne = await api(app)

@@ -13,6 +13,7 @@ import { CalendarModule } from '../calendar/calendar.module';
 import { TokensModule } from '../tokens/tokens.module';
 import { MatchEventsModule } from '../match-events/match-events.module';
 import { StandingsModule } from '../standings/standings.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from '../../common/middleware/request-id.middleware';
 
@@ -32,6 +33,7 @@ import { RequestIdMiddleware } from '../../common/middleware/request-id.middlewa
     TokensModule,
     MatchEventsModule,
     StandingsModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
 })
