@@ -79,7 +79,14 @@ npm --workspace apps/api run test:e2e
 npm --workspace apps/web run typecheck
 ```
 
-## 7) Scope Reminder
+## 7) Backup and Export
+Use the org export endpoint for snapshot backup:
+
+- `GET /api/v1/orgs/:orgId/export`
+
+This returns an org-scoped JSON package including core structure, fixtures, ledger events, disputes, snapshots, and outbox rows.
+
+## 8) Scope Reminder
 - MVP is admin-first league operations.
 - No payments in MVP.
 - Event log is append-only; corrections use compensating events.

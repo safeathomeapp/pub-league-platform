@@ -19,6 +19,11 @@ export default function HelpPage() {
         <li><a href="/schedule">Schedule</a></li>
       </ul>
 
+      <h2>Backup Export</h2>
+      <p>
+        API: <code>GET /api/v1/orgs/:orgId/export</code>
+      </p>
+
       <h2>Runbook</h2>
       <p>
         Full runbook: <code>docs/23-Minimal-Help-and-Runbook.md</code>
