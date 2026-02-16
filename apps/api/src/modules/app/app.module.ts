@@ -4,6 +4,7 @@ import { PrismaModule } from '../db/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { OrgsModule } from '../orgs/orgs.module';
 import { MembershipsModule } from '../memberships/memberships.module';
+import { FixturesModule } from '../fixtures/fixtures.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from '../../common/middleware/request-id.middleware';
 
@@ -14,6 +15,7 @@ import { RequestIdMiddleware } from '../../common/middleware/request-id.middlewa
     AuthModule,
     OrgsModule,
     MembershipsModule,
+    FixturesModule,
   ],
   controllers: [HealthController],
 })
