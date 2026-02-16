@@ -33,6 +33,18 @@ Web shortcut:
 6. Open standings endpoint or standings UI flow.
 7. Confirm notifications outbox entries exist.
 
+## 3.1) Non-Technical UI Test Pages
+- `/match-night`
+  - token issue/transfer/accept
+  - frame events
+  - complete match
+- `/disputes`
+  - create/list/update disputes
+- `/notifications-admin`
+  - outbox filters
+  - monitoring summary
+  - queue test notification
+
 ## 4) Useful API Endpoints
 - Auth:
   - `POST /api/v1/auth/login`

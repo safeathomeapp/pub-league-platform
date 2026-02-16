@@ -105,7 +105,10 @@ export default function SchedulePage() {
       <h1>Schedule</h1>
       <p>Load a division fixture list, update fixture times/status, and preview .ics feeds.</p>
       <p>
-        <a href="/orgs">Back to organisations</a>
+        <a href="/orgs">Back to organisations</a> |{' '}
+        <a href={`/match-night?orgId=${orgId}&divisionId=${divisionId}`}>Match Night</a> |{' '}
+        <a href={`/disputes?orgId=${orgId}&divisionId=${divisionId}`}>Disputes</a> |{' '}
+        <a href={`/notifications-admin?orgId=${orgId}`}>Notifications Admin</a>
       </p>
 
       <form onSubmit={loadFixtures} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -134,6 +137,8 @@ export default function SchedulePage() {
           {fixtures.map(fixture => (
             <FixtureRow
               key={fixture.id}
+              orgId={orgId}
+              divisionId={divisionId}
               fixture={fixture}
               onUpdate={updateFixture}
               onLoadTeamIcs={loadTeamIcs}
@@ -153,11 +158,13 @@ export default function SchedulePage() {
 }
 
 function FixtureRow(props: {
+  orgId: string;
+  divisionId: string;
   fixture: Fixture;
   onUpdate: (fixtureId: string, scheduledAt: string, status: string) => Promise<void>;
   onLoadTeamIcs: (teamId: string) => Promise<void>;
 }) {
-  const { fixture, onUpdate, onLoadTeamIcs } = props;
+  const { orgId, divisionId, fixture, onUpdate, onLoadTeamIcs } = props;
   const [status, setStatus] = useState(fixture.status);
   const [scheduledAt, setScheduledAt] = useState(toDateTimeLocal(fixture.scheduledAt));
 
@@ -187,6 +194,8 @@ function FixtureRow(props: {
           <button type="button" onClick={() => void onLoadTeamIcs(fixture.awayTeam.id)}>
             Away .ics
           </button>
+          <a href={`/match-night?orgId=${orgId}&divisionId=${divisionId}&fixtureId=${fixture.id}`}>Match night</a>
+          <a href={`/disputes?orgId=${orgId}&divisionId=${divisionId}&fixtureId=${fixture.id}`}>Disputes</a>
         </div>
       </td>
     </tr>

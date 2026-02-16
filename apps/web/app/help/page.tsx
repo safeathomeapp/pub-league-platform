@@ -17,6 +17,9 @@ export default function HelpPage() {
         <li><a href="/onboarding">Demo Onboarding</a></li>
         <li><a href="/orgs">Organisations</a></li>
         <li><a href="/schedule">Schedule</a></li>
+        <li><a href="/match-night">Match Night</a></li>
+        <li><a href="/disputes">Disputes</a></li>
+        <li><a href="/notifications-admin">Notifications Admin</a></li>
       </ul>
 
       <h2>Backup Export</h2>

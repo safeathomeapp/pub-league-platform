@@ -98,7 +98,10 @@ export default function OrgsPage() {
         {orgs.map(org => (
           <li key={org.id} style={{ marginBottom: 8 }}>
             <strong>{org.name}</strong> {org.role ? <span>({org.role})</span> : null}{' '}
-            <a href={`/schedule?orgId=${org.id}`}>Open schedule</a>
+            <a href={`/schedule?orgId=${org.id}`}>Schedule</a> |{' '}
+            <a href={`/match-night?orgId=${org.id}`}>Match Night</a> |{' '}
+            <a href={`/disputes?orgId=${org.id}`}>Disputes</a> |{' '}
+            <a href={`/notifications-admin?orgId=${org.id}`}>Notifications</a>
           </li>
         ))}
       </ul>
