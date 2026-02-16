@@ -86,7 +86,19 @@ Use the org export endpoint for snapshot backup:
 
 This returns an org-scoped JSON package including core structure, fixtures, ledger events, disputes, snapshots, and outbox rows.
 
-## 8) Scope Reminder
+## 8) Messaging Failure Monitoring
+Use monitoring endpoint for failure visibility:
+
+- `GET /api/v1/orgs/:orgId/notifications/monitoring`
+
+Optional window query:
+- `?hours=24` (range: 1 to 168)
+
+Admin-focused outbox filters:
+- `GET /api/v1/orgs/:orgId/notifications/outbox?status=failed`
+- `GET /api/v1/orgs/:orgId/notifications/outbox?templateKey=fixture.completed`
+
+## 9) Scope Reminder
 - MVP is admin-first league operations.
 - No payments in MVP.
 - Event log is append-only; corrections use compensating events.

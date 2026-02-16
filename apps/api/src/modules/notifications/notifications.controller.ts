@@ -4,6 +4,7 @@ import { OrgMembershipGuard } from '../../common/guards/org-membership.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ListOutboxQueryDto } from './dto/list-outbox-query.dto';
+import { NotificationsMonitoringQueryDto } from './dto/notifications-monitoring-query.dto';
 import { SendTestNotificationDto } from './dto/send-test-notification.dto';
 import { NotificationsService } from './notifications.service';
 
@@ -20,6 +21,12 @@ export class NotificationsController {
       channel: query.channel as 'sms' | 'whatsapp' | 'email' | undefined,
       templateKey: query.templateKey,
     });
+  }
+
+  @Get('monitoring')
+  @Roles('ORG_ADMIN', 'COMMISSIONER')
+  monitoring(@Param('orgId') orgId: string, @Query() query: NotificationsMonitoringQueryDto) {
+    return this.notifications.getMonitoringSummary(orgId, query.hours ?? 24);
   }
 
   @Post('test')

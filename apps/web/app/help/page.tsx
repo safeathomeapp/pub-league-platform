@@ -24,6 +24,11 @@ export default function HelpPage() {
         API: <code>GET /api/v1/orgs/:orgId/export</code>
       </p>
 
+      <h2>Messaging Monitoring</h2>
+      <p>
+        API: <code>GET /api/v1/orgs/:orgId/notifications/monitoring?hours=24</code>
+      </p>
+
       <h2>Runbook</h2>
       <p>
         Full runbook: <code>docs/23-Minimal-Help-and-Runbook.md</code>

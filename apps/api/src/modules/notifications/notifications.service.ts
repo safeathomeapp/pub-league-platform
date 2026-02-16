@@ -164,4 +164,51 @@ export class NotificationsService {
       ),
     );
   }
+
+  async getMonitoringSummary(orgId: string, hours = 24) {
+    const windowStart = new Date(Date.now() - hours * 60 * 60 * 1000);
+
+    const [statusCounts, recentFailures] = await Promise.all([
+      this.prisma.notificationOutbox.groupBy({
+        by: ['status'],
+        where: { organisationId: orgId },
+        _count: { _all: true },
+      }),
+      this.prisma.notificationOutbox.findMany({
+        where: {
+          organisationId: orgId,
+          status: 'failed',
+          updatedAt: { gte: windowStart },
+        },
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        take: 25,
+      }),
+    ]);
+
+    const statusTotals = { pending: 0, sending: 0, sent: 0, failed: 0 };
+    for (const row of statusCounts) {
+      statusTotals[row.status] = row._count._all;
+    }
+
+    return {
+      windowHours: hours,
+      generatedAt: new Date().toISOString(),
+      totals: statusTotals,
+      recentFailures: recentFailures.map(item => ({
+        id: item.id,
+        channel: item.channel,
+        toMasked: this.maskRecipient(item.to),
+        templateKey: item.templateKey,
+        attempts: item.attempts,
+        lastError: item.lastError,
+        updatedAt: item.updatedAt,
+      })),
+    };
+  }
+
+  private maskRecipient(value: string): string {
+    if (value.length <= 4) return '****';
+    const tail = value.slice(-4);
+    return `${'*'.repeat(Math.max(4, value.length - 4))}${tail}`;
+  }
 }

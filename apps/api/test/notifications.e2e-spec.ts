@@ -1,14 +1,17 @@
 import { INestApplication } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 import { api, bootstrapTestApp } from './test-utils';
 
 describe('notifications (e2e)', () => {
   let app: INestApplication;
+  const prisma = new PrismaClient();
 
   beforeAll(async () => {
     app = await bootstrapTestApp();
   });
 
   afterAll(async () => {
+    await prisma.$disconnect();
     await app.close();
   });
 
@@ -146,8 +149,27 @@ describe('notifications (e2e)', () => {
     expect(testQueued.body.templateKey).toBe('notifications.test');
     expect(testQueued.body.status).toBe('pending');
 
+    await prisma.notificationOutbox.update({
+      where: { id: testQueued.body.id },
+      data: { status: 'failed', attempts: 3, lastError: 'Simulated provider outage' },
+    });
+
+    const monitoring = await api(app)
+      .get(`/api/v1/orgs/${orgId}/notifications/monitoring?hours=24`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(monitoring.body.totals.failed).toBeGreaterThanOrEqual(1);
+    expect(Array.isArray(monitoring.body.recentFailures)).toBe(true);
+    expect(monitoring.body.recentFailures.some((item: any) => item.lastError === 'Simulated provider outage')).toBe(true);
+    expect(monitoring.body.recentFailures.some((item: any) => typeof item.toMasked === 'string' && item.toMasked.includes('0009'))).toBe(true);
+
     await api(app)
       .get(`/api/v1/orgs/${orgId}/notifications/outbox`)
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .expect(403);
+
+    await api(app)
+      .get(`/api/v1/orgs/${orgId}/notifications/monitoring`)
       .set('Authorization', `Bearer ${outsiderToken}`)
       .expect(403);
   });
