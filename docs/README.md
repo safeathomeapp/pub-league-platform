@@ -17,7 +17,8 @@ This pack is ordered. Read top to bottom.
 12. [11-Repo-Structure-and-Conventions.md](11-Repo-Structure-and-Conventions.md)
 13. [12-Backlog-MVP-User-Stories.md](12-Backlog-MVP-User-Stories.md)
 14. [13-Pricing-GoToMarket-and-ROI.md](13-Pricing-GoToMarket-and-ROI.md)
+15. [23-Minimal-Help-and-Runbook.md](23-Minimal-Help-and-Runbook.md)
 
 A zipped bundle is provided alongside individual files.
 
-15. [22-Milestone1-Implementation-Plan-Auth-Orgs-Roles.md](22-Milestone1-Implementation-Plan-Auth-Orgs-Roles.md)
+16. [22-Milestone1-Implementation-Plan-Auth-Orgs-Roles.md](22-Milestone1-Implementation-Plan-Auth-Orgs-Roles.md)
