@@ -5,6 +5,7 @@ import { AuthModule } from '../auth/auth.module';
 import { OrgsModule } from '../orgs/orgs.module';
 import { MembershipsModule } from '../memberships/memberships.module';
 import { FixturesModule } from '../fixtures/fixtures.module';
+import { RulesetsModule } from '../rulesets/rulesets.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from '../../common/middleware/request-id.middleware';
 
@@ -16,6 +17,7 @@ import { RequestIdMiddleware } from '../../common/middleware/request-id.middlewa
     OrgsModule,
     MembershipsModule,
     FixturesModule,
+    RulesetsModule,
   ],
   controllers: [HealthController],
 })
