@@ -1,10 +1,14 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
+import { StandingsService } from '../standings/standings.service';
 
 @Injectable()
 export class MatchEventsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private standings: StandingsService,
+  ) {}
 
   async append(
     orgId: string,
@@ -78,6 +82,15 @@ export class MatchEventsService {
       where: { id: fixtureId },
       data: { status: 'completed' },
     });
+
+    const fixture = await this.prisma.fixture.findUnique({
+      where: { id: fixtureId },
+      select: { divisionId: true },
+    });
+    if (fixture) {
+      // Keep snapshots warm immediately after match completion.
+      await this.standings.recomputeAndSnapshot(orgId, fixture.divisionId);
+    }
 
     return event;
   }

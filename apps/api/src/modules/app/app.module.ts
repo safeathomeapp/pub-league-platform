@@ -12,6 +12,7 @@ import { TeamsPlayersModule } from '../teams-players/teams-players.module';
 import { CalendarModule } from '../calendar/calendar.module';
 import { TokensModule } from '../tokens/tokens.module';
 import { MatchEventsModule } from '../match-events/match-events.module';
+import { StandingsModule } from '../standings/standings.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from '../../common/middleware/request-id.middleware';
 
@@ -30,6 +31,7 @@ import { RequestIdMiddleware } from '../../common/middleware/request-id.middlewa
     CalendarModule,
     TokensModule,
     MatchEventsModule,
+    StandingsModule,
   ],
   controllers: [HealthController],
 })
