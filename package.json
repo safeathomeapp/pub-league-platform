@@ -1,0 +1,17 @@
+{
+  "name": "pub-league-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run -ws dev",
+    "lint": "npm run -ws lint",
+    "typecheck": "npm run -ws typecheck",
+    "format": "npm run -ws format",
+    "db:push": "npm --workspace apps/api run db:push",
+    "db:migrate": "npm --workspace apps/api run db:migrate",
+    "db:studio": "npm --workspace apps/api run db:studio"
+  }
+}

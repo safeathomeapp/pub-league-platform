@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Sport {
+  pool
+  darts
+}
+
+enum FixtureStatus {
+  scheduled
+  in_progress
+  completed
+}
+
+enum Role {
+  ORG_ADMIN
+  COMMISSIONER
+  CAPTAIN
+  PLAYER
+}
+
+enum OutboxStatus {
+  pending
+  sending
+  sent
+  failed
+}
+
+enum NotificationChannel {
+  sms
+  whatsapp
+  email
+}
+
+model Organisation {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  leagues      League[]
+  memberships  OrgMembership[]
+  players      Player[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  memberships OrgMembership[]
+}
+
+model OrgMembership {
+  id             String       @id @default(uuid())
+  organisationId String
+  userId         String
+  role           Role
+  createdAt      DateTime     @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, userId])
+}
+
+model Ruleset {
+  id             String   @id @default(uuid())
+  organisationId String
+  name           String
+  sport          Sport
+  config         Json
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  leagues       League[]
+}
+
+model League {
+  id             String   @id @default(uuid())
+  organisationId String
+  name           String
+  sport          Sport
+  rulesetId      String
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  ruleset      Ruleset      @relation(fields: [rulesetId], references: [id])
+  seasons      Season[]
+}
+
+model Season {
+  id        String   @id @default(uuid())
+  leagueId  String
+  name      String
+  startDate DateTime
+  endDate   DateTime
+
+  league    League    @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  divisions Division[]
+}
+
+model Division {
+  id       String @id @default(uuid())
+  seasonId String
+  name     String
+
+  season   Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  teams    Team[]
+  fixtures Fixture[]
+}
+
+model Team {
+  id         String @id @default(uuid())
+  divisionId String
+  name       String
+
+  division Division @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  roster   TeamPlayer[]
+  homeFixtures Fixture[] @relation("HomeTeam")
+  awayFixtures Fixture[] @relation("AwayTeam")
+}
+
+model Player {
+  id             String   @id @default(uuid())
+  organisationId String
+  displayName    String
+  contactEmail   String?
+  contactPhone   String?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  teams        TeamPlayer[]
+}
+
+model TeamPlayer {
+  id        String @id @default(uuid())
+  teamId    String
+  playerId  String
+  role      Role   // CAPTAIN or PLAYER (reuse enum; keep simple)
+  joinedAt  DateTime @default(now())
+
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, playerId])
+}
+
+model Fixture {
+  id          String       @id @default(uuid())
+  divisionId  String
+  homeTeamId  String
+  awayTeamId  String
+  scheduledAt DateTime
+  status      FixtureStatus @default(scheduled)
+
+  division Division @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  homeTeam Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
+
+  tokens MatchControlToken[]
+  events MatchEvent[]
+  disputes Dispute[]
+}
+
+model MatchControlToken {
+  id          String   @id @default(uuid())
+  fixtureId   String
+  teamId      String
+  currentHolderPlayerId String
+  issuedAt    DateTime @default(now())
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+
+  fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+}
+
+model MatchEvent {
+  id        String   @id @default(uuid())
+  fixtureId String
+  revision  Int
+  eventType String
+  actorUserId String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@unique([fixtureId, revision])
+  @@index([fixtureId, createdAt])
+}
+
+model StandingsSnapshot {
+  id         String   @id @default(uuid())
+  divisionId String
+  data       Json
+  createdAt  DateTime @default(now())
+
+  @@index([divisionId, createdAt])
+}
+
+model Dispute {
+  id        String   @id @default(uuid())
+  fixtureId String
+  status    String   // open|under_review|resolved|rejected
+  reason    String?
+  outcome   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+}
+
+model NotificationOutbox {
+  id             String             @id @default(uuid())
+  organisationId String
+  channel        NotificationChannel
+  to             String
+  templateKey    String
+  templateVars   Json
+  scheduledFor   DateTime
+  status         OutboxStatus        @default(pending)
+  attempts       Int                 @default(0)
+  lastError      String?
+  providerMessageId String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, status, scheduledFor])
+}
