@@ -18,7 +18,7 @@ export default async function Home() {
       <p>
         <a href="/login">Login</a> | <a href="/register">Register</a> | <a href="/orgs">Organisations</a> |{' '}
         <a href="/schedule">Schedule</a> | <a href="/match-night">Match Night</a> | <a href="/disputes">Disputes</a> |{' '}
-        <a href="/notifications-admin">Notifications</a> | <a href="/onboarding">Demo Onboarding</a> | <a href="/help">Help</a>
+        <a href="/standings">Standings</a> | <a href="/notifications-admin">Notifications</a> | <a href="/onboarding">Demo Onboarding</a> | <a href="/help">Help</a>
       </p>
       <h2>API health</h2>
       <pre>{JSON.stringify(health, null, 2)}</pre>

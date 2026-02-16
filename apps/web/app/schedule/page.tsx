@@ -108,6 +108,7 @@ export default function SchedulePage() {
         <a href="/orgs">Back to organisations</a> |{' '}
         <a href={`/match-night?orgId=${orgId}&divisionId=${divisionId}`}>Match Night</a> |{' '}
         <a href={`/disputes?orgId=${orgId}&divisionId=${divisionId}`}>Disputes</a> |{' '}
+        <a href={`/standings?orgId=${orgId}&divisionId=${divisionId}`}>Standings</a> |{' '}
         <a href={`/notifications-admin?orgId=${orgId}`}>Notifications Admin</a>
       </p>
 

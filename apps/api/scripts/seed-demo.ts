@@ -32,7 +32,7 @@ async function main() {
   const division = await upsertDivision(season.id);
   const teams = await upsertTeams(division.id);
   await upsertFixtures(division.id, teams);
-  await upsertCaptainPlayers(org.id, teams);
+  await upsertTeamPlayers(org.id, teams);
 
   // eslint-disable-next-line no-console
   console.log('Demo seed complete');
@@ -197,42 +197,62 @@ async function upsertFixtures(divisionId: string, teams: Array<{ id: string }>) 
   }
 }
 
-async function upsertCaptainPlayers(orgId: string, teams: Array<{ id: string; name?: string }>) {
+async function upsertTeamPlayers(orgId: string, teams: Array<{ id: string; name?: string }>) {
   let index = 1;
   for (const team of teams) {
-    const email = `captain${index}@demo.publeague.local`;
-    const phone = `+4477009${(10000 + index).toString().slice(-5)}`;
-    const name = `Captain ${index}`;
+    const seededPlayers = [
+      {
+        displayName: `Captain ${index}`,
+        contactEmail: `captain${index}@demo.publeague.local`,
+        contactPhone: `+4477009${(10000 + index).toString().slice(-5)}`,
+        role: 'CAPTAIN' as const,
+      },
+      {
+        displayName: `Player ${index}A`,
+        contactEmail: `player${index}a@demo.publeague.local`,
+        contactPhone: `+4477008${(10000 + index).toString().slice(-5)}`,
+        role: 'PLAYER' as const,
+      },
+      {
+        displayName: `Player ${index}B`,
+        contactEmail: `player${index}b@demo.publeague.local`,
+        contactPhone: `+4477007${(10000 + index).toString().slice(-5)}`,
+        role: 'PLAYER' as const,
+      },
+    ];
 
-    const existingPlayer = await prisma.player.findFirst({
-      where: { organisationId: orgId, contactEmail: email },
-    });
-
-    const player =
-      existingPlayer ??
-      (await prisma.player.create({
-        data: {
-          organisationId: orgId,
-          displayName: name,
-          contactEmail: email,
-          contactPhone: phone,
-        },
-      }));
-
-    const rosterEntry = await prisma.teamPlayer.findUnique({
-      where: { teamId_playerId: { teamId: team.id, playerId: player.id } },
-      select: { id: true },
-    });
-    if (!rosterEntry) {
-      await prisma.teamPlayer.create({
-        data: { teamId: team.id, playerId: player.id, role: 'CAPTAIN' },
+    for (const seeded of seededPlayers) {
+      const existingPlayer = await prisma.player.findFirst({
+        where: { organisationId: orgId, contactEmail: seeded.contactEmail },
       });
-    } else {
-      await prisma.teamPlayer.update({
+
+      const player =
+        existingPlayer ??
+        (await prisma.player.create({
+          data: {
+            organisationId: orgId,
+            displayName: seeded.displayName,
+            contactEmail: seeded.contactEmail,
+            contactPhone: seeded.contactPhone,
+          },
+        }));
+
+      const rosterEntry = await prisma.teamPlayer.findUnique({
         where: { teamId_playerId: { teamId: team.id, playerId: player.id } },
-        data: { role: 'CAPTAIN' },
+        select: { id: true },
       });
+      if (!rosterEntry) {
+        await prisma.teamPlayer.create({
+          data: { teamId: team.id, playerId: player.id, role: seeded.role },
+        });
+      } else {
+        await prisma.teamPlayer.update({
+          where: { teamId_playerId: { teamId: team.id, playerId: player.id } },
+          data: { role: seeded.role },
+        });
+      }
     }
+
     index += 1;
   }
 }
