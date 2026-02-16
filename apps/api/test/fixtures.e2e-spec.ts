@@ -123,6 +123,20 @@ describe('fixtures (e2e)', () => {
     expect(patched.body.status).toBe('in_progress');
     expect(patched.body.scheduledAt).toBe('2026-04-15T19:30:00.000Z');
 
+    const filteredByStatus = await api(app)
+      .get(`/api/v1/orgs/${orgId}/divisions/${division.id}/fixtures?status=in_progress`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(filteredByStatus.body).toHaveLength(1);
+    expect(filteredByStatus.body[0].id).toBe(targetFixtureId);
+
+    const filteredByDate = await api(app)
+      .get(`/api/v1/orgs/${orgId}/divisions/${division.id}/fixtures?from=2026-04-15T00:00:00.000Z&to=2026-04-15T23:59:59.000Z`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(filteredByDate.body).toHaveLength(1);
+    expect(filteredByDate.body[0].id).toBe(targetFixtureId);
+
     await api(app)
       .get(`/api/v1/orgs/${orgId}/divisions/${division.id}/fixtures`)
       .set('Authorization', `Bearer ${outsiderToken}`)

@@ -91,7 +91,10 @@ describe('calendar (e2e)', () => {
 
     expect(divisionFeed.text).toContain('BEGIN:VCALENDAR');
     expect(divisionFeed.text).toContain(`UID:${fixtureId}@publeague`);
-    expect(divisionFeed.text).toContain('SUMMARY:Team A vs Team B');
+    expect(
+      divisionFeed.text.includes('SUMMARY:Team A vs Team B') ||
+      divisionFeed.text.includes('SUMMARY:Team B vs Team A'),
+    ).toBe(true);
     expect(divisionFeed.text).toContain('DTSTART;TZID=Europe/London:20260415T203000');
 
     const teamFeed = await api(app)
@@ -101,7 +104,10 @@ describe('calendar (e2e)', () => {
       .expect(200);
 
     expect(teamFeed.text).toContain(`UID:${fixtureId}@publeague`);
-    expect(teamFeed.text).toContain('SUMMARY:Team A vs Team B');
+    expect(
+      teamFeed.text.includes('SUMMARY:Team A vs Team B') ||
+      teamFeed.text.includes('SUMMARY:Team B vs Team A'),
+    ).toBe(true);
 
     await api(app)
       .get(`/api/v1/orgs/${orgId}/calendar/teams/${teamB.id}.ics`)

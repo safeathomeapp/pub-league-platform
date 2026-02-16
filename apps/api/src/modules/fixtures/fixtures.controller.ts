@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { OrgMembershipGuard } from '../../common/guards/org-membership.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GenerateRoundRobinParamsDto } from './dto/generate-round-robin-params.dto';
+import { ListFixturesQueryDto } from './dto/list-fixtures-query.dto';
 import { UpdateFixtureDto } from './dto/update-fixture.dto';
 import { FixturesService } from './fixtures.service';
 
@@ -20,8 +21,8 @@ export class FixturesController {
 
   @Get('divisions/:divisionId/fixtures')
   @Roles('ORG_ADMIN', 'COMMISSIONER', 'CAPTAIN', 'PLAYER')
-  list(@Param('orgId') orgId: string, @Param('divisionId') divisionId: string) {
-    return this.fixtures.listForDivision(orgId, divisionId);
+  list(@Param('orgId') orgId: string, @Param('divisionId') divisionId: string, @Query() query: ListFixturesQueryDto) {
+    return this.fixtures.listForDivision(orgId, divisionId, query);
   }
 
   @Get('fixtures/:fixtureId')

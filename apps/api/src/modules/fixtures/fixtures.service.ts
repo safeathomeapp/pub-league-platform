@@ -62,10 +62,22 @@ export class FixturesService {
     };
   }
 
-  async listForDivision(orgId: string, divisionId: string) {
+  async listForDivision(
+    orgId: string,
+    divisionId: string,
+    query?: { from?: string; to?: string; status?: string },
+  ) {
     await this.assertDivisionInOrg(orgId, divisionId);
+    const scheduledAt = {
+      ...(query?.from ? { gte: new Date(query.from) } : {}),
+      ...(query?.to ? { lte: new Date(query.to) } : {}),
+    };
     return this.prisma.fixture.findMany({
-      where: { divisionId },
+      where: {
+        divisionId,
+        ...(query?.status ? { status: query.status as any } : {}),
+        ...(Object.keys(scheduledAt).length ? { scheduledAt } : {}),
+      },
       include: {
         homeTeam: true,
         awayTeam: true,
