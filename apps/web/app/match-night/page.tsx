@@ -19,6 +19,7 @@ type Fixture = {
   id: string;
   homeTeam: Team;
   awayTeam: Team;
+  state: 'SCHEDULED' | 'IN_PROGRESS' | 'SUBMITTED' | 'AWAITING_OPPONENT' | 'DISPUTED' | 'LOCKED';
   status: 'scheduled' | 'in_progress' | 'completed';
 };
 
@@ -30,6 +31,30 @@ type MatchEvent = {
   createdAt: string;
 };
 
+type MatchToken = {
+  id: string;
+  fixtureId: string;
+  teamId: string;
+  currentHolderPlayerId: string;
+  issuedAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+};
+
+type Dispute = {
+  id: string;
+  status: string;
+  reason: string | null;
+  outcome: string | null;
+  createdAt: string;
+};
+
+type SubmittedResult = {
+  submittingTeamId: string;
+  homeFrames: number;
+  awayFrames: number;
+} | null;
+
 function MatchNightPageContent() {
   const search = useSearchParams();
   const apiBase = useMemo(() => process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1', []);
@@ -39,8 +64,10 @@ function MatchNightPageContent() {
   const [fixtureId, setFixtureId] = useState(search.get('fixtureId') ?? '');
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [events, setEvents] = useState<MatchEvent[]>([]);
-  const [tokens, setTokens] = useState<any[]>([]);
+  const [tokensByFixture, setTokensByFixture] = useState<Record<string, MatchToken[]>>({});
   const [teams, setTeams] = useState<Team[]>([]);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [me, setMe] = useState<{ id: string; email: string } | null>(null);
   const [frameNo, setFrameNo] = useState(1);
   const [winnerTeamId, setWinnerTeamId] = useState('');
   const [homeFrames, setHomeFrames] = useState(0);
@@ -49,11 +76,28 @@ function MatchNightPageContent() {
   const [holderPlayerId, setHolderPlayerId] = useState('');
   const [transferToPlayerId, setTransferToPlayerId] = useState('');
   const [acceptPlayerId, setAcceptPlayerId] = useState('');
+  const [actingPlayerId, setActingPlayerId] = useState('');
+  const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const selectedFixture = fixtures.find(item => item.id === fixtureId);
+  const selectedTokens = tokensByFixture[fixtureId] ?? [];
   const currentRevision = events.length ? Math.max(...events.map(item => item.revision)) : 0;
+  const acceptedTokens = selectedTokens.filter(token => !token.revokedAt && token.acceptedAt);
+  const submittedResult = getLatestSubmittedResult(events);
+  const actingToken = acceptedTokens.find(token => token.currentHolderPlayerId === actingPlayerId);
+  const canSubmit =
+    !!selectedFixture &&
+    !!actingToken &&
+    (selectedFixture.state === 'SCHEDULED' || selectedFixture.state === 'IN_PROGRESS');
+  const canApproveOrReject =
+    !!selectedFixture &&
+    !!actingToken &&
+    selectedFixture.state === 'AWAITING_OPPONENT' &&
+    !!submittedResult &&
+    actingToken.teamId !== submittedResult.submittingTeamId;
 
   async function authFetch(path: string, init?: RequestInit) {
     const token = localStorage.getItem('accessToken');
@@ -71,28 +115,50 @@ function MatchNightPageContent() {
     });
   }
 
-  async function loadSetup(e?: React.FormEvent) {
-    e?.preventDefault();
-    setStatus('Loading fixtures and team rosters...');
+  async function loadSetup(nextFixtureId?: string) {
+    setStatus('Loading fixtures, tokens, and team rosters...');
     setError(null);
     try {
-      const [fixturesRes, teamsRes] = await Promise.all([
+      const [fixturesRes, teamsRes, meRes] = await Promise.all([
         authFetch(`/orgs/${orgId}/divisions/${divisionId}/fixtures`),
         authFetch(`/orgs/${orgId}/divisions/${divisionId}/teams`),
+        authFetch('/auth/me'),
       ]);
       const fixturesData = await fixturesRes.json();
       const teamsData = await teamsRes.json();
+      const meData = await meRes.json();
       if (!fixturesRes.ok) throw new Error(fixturesData?.error?.message ?? 'Failed to load fixtures');
       if (!teamsRes.ok) throw new Error(teamsData?.error?.message ?? 'Failed to load teams');
+      if (!meRes.ok) throw new Error(meData?.error?.message ?? 'Failed to load authenticated user');
 
-      setFixtures(fixturesData);
-      setTeams(teamsData);
+      const fixtureList = fixturesData as Fixture[];
+      const teamList = teamsData as Team[];
+      setFixtures(fixtureList);
+      setTeams(teamList);
+      setMe(meData.user ?? null);
 
-      const initialFixtureId = fixtureId || fixturesData[0]?.id || '';
-      setFixtureId(initialFixtureId);
+      const tokenResponses = await Promise.all(
+        fixtureList.map(async fixture => {
+          const res = await authFetch(`/orgs/${orgId}/fixtures/${fixture.id}/tokens`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.error?.message ?? `Failed to load tokens for fixture ${fixture.id}`);
+          return [fixture.id, data as MatchToken[]] as const;
+        }),
+      );
+      const nextTokenMap: Record<string, MatchToken[]> = {};
+      for (const [id, tokenList] of tokenResponses) nextTokenMap[id] = tokenList;
+      setTokensByFixture(nextTokenMap);
+
+      const initialFixtureId = nextFixtureId || fixtureId || fixtureList[0]?.id || '';
       if (initialFixtureId) {
-        await loadFixtureData(initialFixtureId);
+        setFixtureId(initialFixtureId);
+        await loadFixtureData(initialFixtureId, fixtureList, nextTokenMap);
+      } else {
+        setFixtureId('');
+        setEvents([]);
+        setDisputes([]);
       }
+
       setStatus('Loaded');
     } catch (err) {
       setStatus(null);
@@ -100,23 +166,21 @@ function MatchNightPageContent() {
     }
   }
 
-  async function loadFixtureData(nextFixtureId = fixtureId) {
+  async function loadFixtureData(
+    nextFixtureId = fixtureId,
+    fixtureList = fixtures,
+    tokenMap = tokensByFixture,
+  ) {
     if (!orgId || !nextFixtureId) return;
-    setStatus('Loading fixture events/tokens...');
+    setStatus('Loading fixture details...');
     setError(null);
     try {
-      const [eventsRes, tokensRes] = await Promise.all([
-        authFetch(`/orgs/${orgId}/fixtures/${nextFixtureId}/events`),
-        authFetch(`/orgs/${orgId}/fixtures/${nextFixtureId}/tokens`),
-      ]);
+      const eventsRes = await authFetch(`/orgs/${orgId}/fixtures/${nextFixtureId}/events`);
       const eventsData = await eventsRes.json();
-      const tokensData = await tokensRes.json();
       if (!eventsRes.ok) throw new Error(eventsData?.error?.message ?? 'Failed to load events');
-      if (!tokensRes.ok) throw new Error(tokensData?.error?.message ?? 'Failed to load tokens');
       setEvents(eventsData);
-      setTokens(tokensData);
 
-      const fixture = fixtures.find(item => item.id === nextFixtureId);
+      const fixture = fixtureList.find(item => item.id === nextFixtureId);
       const initialTeam = fixture?.homeTeam.id || '';
       setTokenTeamId(initialTeam);
       if (initialTeam) {
@@ -126,6 +190,19 @@ function MatchNightPageContent() {
         setAcceptPlayerId(rosterPlayers[0] ?? '');
         setWinnerTeamId(fixture?.homeTeam.id ?? '');
       }
+      const fixtureTokens = tokenMap[nextFixtureId] ?? [];
+      const defaultActingToken = fixtureTokens.find(token => !token.revokedAt && token.acceptedAt);
+      if (defaultActingToken) setActingPlayerId(defaultActingToken.currentHolderPlayerId);
+
+      if (fixture?.state === 'DISPUTED') {
+        const disputesRes = await authFetch(`/orgs/${orgId}/fixtures/${nextFixtureId}/disputes`);
+        const disputesData = await disputesRes.json();
+        if (!disputesRes.ok) throw new Error(disputesData?.error?.message ?? 'Failed to load disputes');
+        setDisputes(disputesData as Dispute[]);
+      } else {
+        setDisputes([]);
+      }
+
       setStatus('Fixture loaded');
     } catch (err) {
       setStatus(null);
@@ -144,7 +221,7 @@ function MatchNightPageContent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error?.message ?? 'Request failed');
-      await loadFixtureData();
+      await loadSetup(fixtureId);
       setStatus(okMessage);
     } catch (err) {
       setStatus(null);
@@ -161,16 +238,67 @@ function MatchNightPageContent() {
     return (teams.find(team => team.id === teamId)?.roster ?? []).map(entry => entry.player);
   }
 
+  function onLoadSetupSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    void loadSetup();
+  }
+
+  async function submitResult() {
+    if (!selectedFixture || !actingToken) return;
+    await postJson(
+      `/orgs/${orgId}/fixtures/${selectedFixture.id}/submit`,
+      {
+        expectedRevision: currentRevision,
+        homeFrames,
+        awayFrames,
+        teamId: actingToken.teamId,
+        actorPlayerId: actingToken.currentHolderPlayerId,
+      },
+      'Result submitted',
+    );
+    setShowSubmitForm(false);
+  }
+
+  async function approveResult() {
+    if (!selectedFixture || !actingToken) return;
+    await postJson(
+      `/orgs/${orgId}/fixtures/${selectedFixture.id}/approve`,
+      {
+        expectedRevision: currentRevision,
+        teamId: actingToken.teamId,
+        actorPlayerId: actingToken.currentHolderPlayerId,
+      },
+      'Result approved and fixture locked',
+    );
+  }
+
+  async function rejectResult() {
+    if (!selectedFixture || !actingToken) return;
+    await postJson(
+      `/orgs/${orgId}/fixtures/${selectedFixture.id}/reject`,
+      {
+        expectedRevision: currentRevision,
+        teamId: actingToken.teamId,
+        actorPlayerId: actingToken.currentHolderPlayerId,
+        ...(rejectReason.trim() ? { reason: rejectReason.trim() } : {}),
+      },
+      'Result rejected and dispute opened',
+    );
+    setRejectReason('');
+  }
+
+  const requiredAction = getRequiredActionLabel(selectedFixture?.state, canSubmit, canApproveOrReject);
+
   return (
     <main>
       <h1>Match Night</h1>
-      <p>Issue/transfer/accept tokens, record frame events, and complete fixtures.</p>
+      <p>Issue/transfer/accept tokens, submit results, and opponent sign-off.</p>
       <p>
         <a href="/orgs">Organisations</a> | <a href="/schedule">Schedule</a> | <a href="/disputes">Disputes</a> |{' '}
         <a href="/notifications-admin">Notifications Admin</a>
       </p>
 
-      <form onSubmit={loadSetup} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+      <form onSubmit={onLoadSetupSubmit} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         <input placeholder="orgId" value={orgId} onChange={e => setOrgId(e.target.value)} required />
         <input placeholder="divisionId" value={divisionId} onChange={e => setDivisionId(e.target.value)} required />
         <button type="submit">Load setup</button>
@@ -195,12 +323,18 @@ function MatchNightPageContent() {
           ))}
         </select>
         <button type="button" onClick={() => void loadFixtureData()} disabled={!fixtureId}>
-          Refresh events/tokens
+          Refresh fixture details
         </button>
       </div>
 
       {status ? <p>{status}</p> : null}
       {error ? <p style={{ color: 'crimson' }}>{error}</p> : null}
+      {selectedFixture ? (
+        <p>
+          Fixture state: <strong>{selectedFixture.state}</strong> | Required action: <strong>{requiredAction}</strong>
+        </p>
+      ) : null}
+      {me ? <p>Signed in as: {me.email}</p> : null}
 
       <h2>Token Control</h2>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -272,7 +406,72 @@ function MatchNightPageContent() {
       </div>
 
       <h3>Active token state</h3>
-      <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(tokens, null, 2)}</pre>
+      <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(selectedTokens, null, 2)}</pre>
+
+      <h2>Captain Sign-off Workflow</h2>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+        <select value={actingPlayerId} onChange={e => setActingPlayerId(e.target.value)} disabled={!fixtureId}>
+          <option value="">Select acting token holder</option>
+          {acceptedTokens.map(token => {
+            const playerName = teams
+              .flatMap(team => team.roster ?? [])
+              .find(entry => entry.player.id === token.currentHolderPlayerId)?.player.displayName;
+            return (
+              <option key={token.id} value={token.currentHolderPlayerId}>
+                {playerName ?? token.currentHolderPlayerId} (team {token.teamId})
+              </option>
+            );
+          })}
+        </select>
+        <button type="button" onClick={() => setShowSubmitForm(current => !current)} disabled={!canSubmit}>
+          {showSubmitForm ? 'Cancel submit' : 'Submit result'}
+        </button>
+        <button type="button" onClick={() => void approveResult()} disabled={!canApproveOrReject}>
+          Approve
+        </button>
+        <input
+          placeholder="Reject reason (optional)"
+          value={rejectReason}
+          onChange={e => setRejectReason(e.target.value)}
+          style={{ minWidth: 260 }}
+        />
+        <button type="button" onClick={() => void rejectResult()} disabled={!canApproveOrReject}>
+          Reject
+        </button>
+      </div>
+      {showSubmitForm && canSubmit ? (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          <input
+            type="number"
+            min={0}
+            value={homeFrames}
+            onChange={e => setHomeFrames(Number(e.target.value))}
+            placeholder="Final home frames"
+          />
+          <input
+            type="number"
+            min={0}
+            value={awayFrames}
+            onChange={e => setAwayFrames(Number(e.target.value))}
+            placeholder="Final away frames"
+          />
+          <button type="button" onClick={() => void submitResult()}>
+            Confirm submit
+          </button>
+        </div>
+      ) : null}
+      {submittedResult ? (
+        <p>
+          Latest submitted result: {submittedResult.homeFrames} - {submittedResult.awayFrames} (submitting team{' '}
+          {submittedResult.submittingTeamId})
+        </p>
+      ) : null}
+      {selectedFixture?.state === 'DISPUTED' ? (
+        <>
+          <h3>Dispute status</h3>
+          <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(disputes, null, 2)}</pre>
+        </>
+      ) : null}
 
       <h2>Event Ledger</h2>
       <p>Current revision: <strong>{currentRevision}</strong></p>
@@ -347,6 +546,45 @@ function MatchNightPageContent() {
       <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(events, null, 2)}</pre>
     </main>
   );
+}
+
+function getLatestSubmittedResult(events: MatchEvent[]): SubmittedResult {
+  const latestSubmitted = [...events]
+    .sort((a, b) => b.revision - a.revision)
+    .find(event => event.eventType === 'RESULT_SUBMITTED');
+  if (!latestSubmitted) return null;
+  const payload = latestSubmitted.payload || {};
+  const submittingTeamId =
+    typeof payload.submitting_team_id === 'string' ? payload.submitting_team_id : '';
+  if (!submittingTeamId) return null;
+  const homeFrames = toNonNegativeInt(payload.home_frames);
+  const awayFrames = toNonNegativeInt(payload.away_frames);
+  return { submittingTeamId, homeFrames, awayFrames };
+}
+
+function getRequiredActionLabel(
+  state: Fixture['state'] | undefined,
+  canSubmit: boolean,
+  canApproveOrReject: boolean,
+): string {
+  if (!state) return 'Select a fixture';
+  if (state === 'LOCKED') return 'No action (locked)';
+  if (state === 'DISPUTED') return 'No captain action (disputed)';
+  if (state === 'AWAITING_OPPONENT') {
+    return canApproveOrReject ? 'Approve or reject required' : 'Awaiting opponent captain';
+  }
+  if (state === 'SCHEDULED' || state === 'IN_PROGRESS') {
+    return canSubmit ? 'Submit result required' : 'Awaiting token holder submit';
+  }
+  if (state === 'SUBMITTED') return 'Awaiting opponent review';
+  return 'No action';
+}
+
+function toNonNegativeInt(value: unknown): number {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  const int = Math.floor(parsed);
+  return int < 0 ? 0 : int;
 }
 
 export default function MatchNightPage() {
