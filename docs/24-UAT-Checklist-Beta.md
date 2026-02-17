@@ -10,6 +10,10 @@ Use this checklist with a seeded local environment.
 - [ ] Open `http://localhost:3000/onboarding`
 - [ ] Sign in with demo credentials
 
+- Email: demo.organiser@publeague.local
+- Password: demo12345
+
+
 ## A) Access + Org Context
 - [ ] Open `Organisations` page
 - [ ] At least one org is visible
