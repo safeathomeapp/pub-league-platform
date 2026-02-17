@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 type PointsModel = {
@@ -30,7 +30,7 @@ type StandingsResponse = {
   rows: StandingsRow[];
 };
 
-export default function StandingsPage() {
+function StandingsPageContent() {
   const search = useSearchParams();
   const apiBase = useMemo(
     () => process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1',
@@ -132,5 +132,13 @@ export default function StandingsPage() {
         </>
       ) : null}
     </main>
+  );
+}
+
+export default function StandingsPage() {
+  return (
+    <Suspense fallback={<main><p>Loading standings...</p></main>}>
+      <StandingsPageContent />
+    </Suspense>
   );
 }

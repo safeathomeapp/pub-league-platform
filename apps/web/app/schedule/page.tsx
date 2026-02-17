@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 type Team = { id: string; name: string };
@@ -12,7 +12,7 @@ type Fixture = {
   awayTeam: Team;
 };
 
-export default function SchedulePage() {
+function SchedulePageContent() {
   const search = useSearchParams();
   const apiBase = useMemo(
     () => process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1',
@@ -155,6 +155,14 @@ export default function SchedulePage() {
         </>
       ) : null}
     </main>
+  );
+}
+
+export default function SchedulePage() {
+  return (
+    <Suspense fallback={<main><p>Loading schedule...</p></main>}>
+      <SchedulePageContent />
+    </Suspense>
   );
 }
 

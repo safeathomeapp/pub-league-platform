@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { authFetch, getAccessToken } from '../../lib/api';
 
@@ -36,7 +36,7 @@ function toIsoOrUndefined(value: string): string | undefined {
   return date.toISOString();
 }
 
-export default function SponsorsAdminPage() {
+function SponsorsAdminPageContent() {
   const search = useSearchParams();
   const initialOrgId = search.get('orgId') ?? '';
 
@@ -314,5 +314,13 @@ export default function SponsorsAdminPage() {
 
       {orgId && orgLookup[orgId] ? <p>Current organisation: {orgLookup[orgId].name}</p> : null}
     </main>
+  );
+}
+
+export default function SponsorsAdminPage() {
+  return (
+    <Suspense fallback={<main><p>Loading sponsors admin...</p></main>}>
+      <SponsorsAdminPageContent />
+    </Suspense>
   );
 }

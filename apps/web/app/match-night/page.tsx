@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 type TeamPlayer = {
@@ -30,7 +30,7 @@ type MatchEvent = {
   createdAt: string;
 };
 
-export default function MatchNightPage() {
+function MatchNightPageContent() {
   const search = useSearchParams();
   const apiBase = useMemo(() => process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1', []);
 
@@ -346,5 +346,13 @@ export default function MatchNightPage() {
       <h3>Events</h3>
       <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(events, null, 2)}</pre>
     </main>
+  );
+}
+
+export default function MatchNightPage() {
+  return (
+    <Suspense fallback={<main><p>Loading match night...</p></main>}>
+      <MatchNightPageContent />
+    </Suspense>
   );
 }

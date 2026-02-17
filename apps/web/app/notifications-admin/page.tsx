@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 type OutboxItem = {
@@ -15,7 +15,7 @@ type OutboxItem = {
   updatedAt: string;
 };
 
-export default function NotificationsAdminPage() {
+function NotificationsAdminPageContent() {
   const search = useSearchParams();
   const apiBase = useMemo(() => process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1', []);
 
@@ -168,5 +168,13 @@ export default function NotificationsAdminPage() {
       <h2>Outbox</h2>
       <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(outbox, null, 2)}</pre>
     </main>
+  );
+}
+
+export default function NotificationsAdminPage() {
+  return (
+    <Suspense fallback={<main><p>Loading notifications admin...</p></main>}>
+      <NotificationsAdminPageContent />
+    </Suspense>
   );
 }

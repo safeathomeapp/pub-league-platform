@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 type Fixture = {
@@ -17,7 +17,7 @@ type Dispute = {
   createdAt: string;
 };
 
-export default function DisputesPage() {
+function DisputesPageContent() {
   const search = useSearchParams();
   const apiBase = useMemo(() => process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1', []);
 
@@ -202,5 +202,13 @@ export default function DisputesPage() {
         ))}
       </ul>
     </main>
+  );
+}
+
+export default function DisputesPage() {
+  return (
+    <Suspense fallback={<main><p>Loading disputes...</p></main>}>
+      <DisputesPageContent />
+    </Suspense>
   );
 }
