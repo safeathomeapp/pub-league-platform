@@ -18,10 +18,23 @@ enum FixtureStatus {
   completed
 }
 
+enum FixtureState {
+  SCHEDULED
+  IN_PROGRESS
+  SUBMITTED
+  AWAITING_OPPONENT
+  DISPUTED
+  LOCKED
+}
+
 enum MatchEventType {
   FRAME_RECORDED
   MATCH_EDITED
   MATCH_COMPLETED
+  RESULT_SUBMITTED
+  OPPONENT_REVIEW_REQUESTED
+  RESULT_APPROVED
+  RESULT_REJECTED
   TOKEN_ISSUED
   TOKEN_TRANSFERRED
   TOKEN_ACCEPTED
@@ -188,6 +201,7 @@ model Fixture {
   awayTeamId  String
   scheduledAt DateTime?
   status      FixtureStatus @default(scheduled)
+  state       FixtureState  @default(SCHEDULED)
 
   division Division @relation(fields: [divisionId], references: [id], onDelete: Cascade)
   homeTeam Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])

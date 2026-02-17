@@ -7,6 +7,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CompleteMatchDto } from './dto/complete-match.dto';
 import { CreateMatchEventDto } from './dto/create-match-event.dto';
+import { ReviewResultDto } from './dto/review-result.dto';
+import { SubmitResultDto } from './dto/submit-result.dto';
 import { MatchEventsService } from './match-events.service';
 
 @Controller('orgs/:orgId/fixtures/:fixtureId')
@@ -42,5 +44,38 @@ export class MatchEventsController {
     @Body() dto: CompleteMatchDto,
   ) {
     return this.events.complete(orgId, fixtureId, user.id, req.ctx?.role, dto);
+  }
+
+  @Post('submit')
+  @Roles('ORG_ADMIN', 'COMMISSIONER', 'CAPTAIN', 'PLAYER')
+  submit(
+    @Param('orgId') orgId: string,
+    @Param('fixtureId') fixtureId: string,
+    @CurrentUser() user: { id: string },
+    @Body() dto: SubmitResultDto,
+  ) {
+    return this.events.submit(orgId, fixtureId, user.id, dto);
+  }
+
+  @Post('approve')
+  @Roles('ORG_ADMIN', 'COMMISSIONER', 'CAPTAIN', 'PLAYER')
+  approve(
+    @Param('orgId') orgId: string,
+    @Param('fixtureId') fixtureId: string,
+    @CurrentUser() user: { id: string },
+    @Body() dto: ReviewResultDto,
+  ) {
+    return this.events.approve(orgId, fixtureId, user.id, dto);
+  }
+
+  @Post('reject')
+  @Roles('ORG_ADMIN', 'COMMISSIONER', 'CAPTAIN', 'PLAYER')
+  reject(
+    @Param('orgId') orgId: string,
+    @Param('fixtureId') fixtureId: string,
+    @CurrentUser() user: { id: string },
+    @Body() dto: ReviewResultDto,
+  ) {
+    return this.events.reject(orgId, fixtureId, user.id, dto);
   }
 }

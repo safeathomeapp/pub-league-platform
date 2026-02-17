@@ -116,6 +116,12 @@ describe('disputes (e2e)', () => {
     expect(resolved.body.status).toBe('resolved');
     expect(resolved.body.outcome).toBe('Score confirmed after review');
 
+    const fixtureAfterResolution = await api(app)
+      .get(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(fixtureAfterResolution.body.state).toBe('LOCKED');
+
     const snapshotCountAfter = await prisma.standingsSnapshot.count({
       where: { divisionId: division.body.id },
     });
