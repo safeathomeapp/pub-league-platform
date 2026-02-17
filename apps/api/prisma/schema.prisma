@@ -70,6 +70,12 @@ enum NotificationChannel {
   email
 }
 
+enum SponsorScopeType {
+  ORG
+  LEAGUE
+  DIVISION
+}
+
 model Organisation {
   id        String   @id @default(uuid())
   name      String
@@ -82,6 +88,7 @@ model Organisation {
   rulesets           Ruleset[]
   notificationOutbox NotificationOutbox[]
   rosterTransfers    RosterTransferAudit[]
+  sponsorSlots       SponsorSlot[]
 }
 
 model User {
@@ -316,4 +323,22 @@ model RosterTransferAudit {
   actorUser    User         @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@index([organisationId, seasonId, playerId, createdAt])
+}
+
+model SponsorSlot {
+  id             String           @id @default(uuid())
+  organisationId String
+  scopeType      SponsorScopeType
+  scopeId        String?
+  title          String?
+  imageUrl       String
+  linkUrl        String?
+  startAt        DateTime?
+  endAt          DateTime?
+  sortOrder      Int              @default(0)
+  createdAt      DateTime         @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, scopeType, scopeId, sortOrder, createdAt])
 }
