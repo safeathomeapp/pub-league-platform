@@ -107,7 +107,7 @@ export default function NotificationsAdminPage() {
       <h1>Notifications Admin</h1>
       <p>View outbox, monitor failures, and queue test messages.</p>
       <p>
-        <a href="/orgs">Organisations</a> | <a href="/schedule">Schedule</a> | <a href="/help">Help</a>
+        <a href="/orgs">Organisations</a> | <a href="/sponsors-admin">Sponsors</a> | <a href="/schedule">Schedule</a> | <a href="/help">Help</a>
       </p>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>

@@ -101,7 +101,8 @@ export default function OrgsPage() {
             <a href={`/schedule?orgId=${org.id}`}>Schedule</a> |{' '}
             <a href={`/match-night?orgId=${org.id}`}>Match Night</a> |{' '}
             <a href={`/disputes?orgId=${org.id}`}>Disputes</a> |{' '}
-            <a href={`/notifications-admin?orgId=${org.id}`}>Notifications</a>
+            <a href={`/notifications-admin?orgId=${org.id}`}>Notifications</a> |{' '}
+            <a href={`/sponsors-admin?orgId=${org.id}`}>Sponsors</a>
           </li>
         ))}
       </ul>
