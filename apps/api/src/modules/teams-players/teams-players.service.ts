@@ -1,4 +1,5 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { FixtureState } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 
 @Injectable()
@@ -94,7 +95,15 @@ export class TeamsPlayersService {
   }
 
   async removeTeamPlayer(orgId: string, teamId: string, playerId: string) {
-    await this.assertTeamInOrg(orgId, teamId);
+    const team = await this.prisma.team.findFirst({
+      where: {
+        id: teamId,
+        division: { season: { league: { organisationId: orgId } } },
+      },
+      select: { id: true, division: { select: { seasonId: true } } },
+    });
+    if (!team) throw new NotFoundException('Team not found');
+
     const player = await this.prisma.player.findFirst({
       where: { id: playerId, organisationId: orgId },
       select: { id: true },
@@ -107,10 +116,144 @@ export class TeamsPlayersService {
     });
     if (!existing) throw new NotFoundException('Roster entry not found');
 
+    const appearances = await this.countLockedAppearances(team.division.seasonId, teamId);
+    const seasonPolicy = await this.prisma.season.findFirst({
+      where: {
+        id: team.division.seasonId,
+        league: { organisationId: orgId },
+      },
+      select: {
+        rosterLockAfterAppearances: true,
+      },
+    });
+    if (seasonPolicy && appearances >= seasonPolicy.rosterLockAfterAppearances) {
+      throw new ForbiddenException('Player is roster-locked for this season');
+    }
+
     await this.prisma.teamPlayer.delete({
       where: { teamId_playerId: { teamId, playerId } },
     });
     return { removed: true };
+  }
+
+  async transferSeasonPlayer(
+    orgId: string,
+    seasonId: string,
+    playerId: string,
+    toTeamId: string,
+    actorUserId: string,
+    actorRole: string | undefined,
+    reason: string,
+  ) {
+    const currentRoster = await this.prisma.teamPlayer.findFirst({
+      where: {
+        seasonId,
+        playerId,
+        team: { division: { season: { league: { organisationId: orgId } } } },
+      },
+      select: { id: true, teamId: true, seasonId: true },
+    });
+    if (!currentRoster) throw new NotFoundException('Player is not currently rostered in this season');
+    if (currentRoster.teamId === toTeamId) throw new BadRequestException('Player is already in that team');
+
+    const decision = await this.canMovePlayer({
+      orgId,
+      seasonId,
+      playerId,
+      fromTeamId: currentRoster.teamId,
+      toTeamId,
+      actorUserId,
+      actorRole,
+      reason,
+    });
+
+    const updated = await this.prisma.$transaction(async tx => {
+      const roster = await tx.teamPlayer.update({
+        where: { id: currentRoster.id },
+        data: { teamId: toTeamId },
+        include: { player: true, team: true },
+      });
+
+      await tx.rosterTransferAudit.create({
+        data: {
+          organisationId: orgId,
+          seasonId,
+          playerId,
+          fromTeamId: currentRoster.teamId,
+          toTeamId,
+          actorUserId,
+          reason,
+          wasAdminOverride: decision.wasAdminOverride,
+        },
+      });
+
+      return roster;
+    });
+
+    return updated;
+  }
+
+  async canMovePlayer(input: {
+    orgId: string;
+    seasonId: string;
+    playerId: string;
+    fromTeamId: string;
+    toTeamId: string;
+    actorUserId: string;
+    actorRole: string | undefined;
+    reason?: string;
+  }): Promise<{ allowed: true; wasAdminOverride: boolean }> {
+    const season = await this.prisma.season.findFirst({
+      where: {
+        id: input.seasonId,
+        league: { organisationId: input.orgId },
+      },
+      select: {
+        id: true,
+        rosterLockAfterAppearances: true,
+        allowMidSeasonTransfers: true,
+        requireAdminApprovalForTransfer: true,
+      },
+    });
+    if (!season) throw new NotFoundException('Season not found');
+
+    const [fromTeam, toTeam, player] = await Promise.all([
+      this.prisma.team.findFirst({
+        where: {
+          id: input.fromTeamId,
+          division: { seasonId: input.seasonId, season: { league: { organisationId: input.orgId } } },
+        },
+        select: { id: true },
+      }),
+      this.prisma.team.findFirst({
+        where: {
+          id: input.toTeamId,
+          division: { seasonId: input.seasonId, season: { league: { organisationId: input.orgId } } },
+        },
+        select: { id: true },
+      }),
+      this.prisma.player.findFirst({
+        where: { id: input.playerId, organisationId: input.orgId },
+        select: { id: true },
+      }),
+    ]);
+    if (!fromTeam) throw new NotFoundException('Current team not found in this season');
+    if (!toTeam) throw new NotFoundException('Destination team not found in this season');
+    if (!player) throw new NotFoundException('Player not found');
+
+    const appearances = await this.countLockedAppearances(input.seasonId, input.fromTeamId);
+    const requiresOverride = !season.allowMidSeasonTransfers || appearances >= season.rosterLockAfterAppearances;
+
+    if (requiresOverride) {
+      const isAdmin = input.actorRole === 'ORG_ADMIN' || input.actorRole === 'COMMISSIONER';
+      if (!isAdmin) throw new ForbiddenException('Admin override required for this transfer');
+      if (season.requireAdminApprovalForTransfer && !input.reason?.trim()) {
+        throw new BadRequestException('Admin override reason is required');
+      }
+      return { allowed: true, wasAdminOverride: true };
+    }
+
+    return { allowed: true, wasAdminOverride: false };
   }
 
   private async assertDivisionInOrg(orgId: string, divisionId: string): Promise<void> {
@@ -133,5 +276,15 @@ export class TeamsPlayersService {
       select: { id: true },
     });
     if (!team) throw new NotFoundException('Team not found');
+  }
+
+  private async countLockedAppearances(seasonId: string, teamId: string): Promise<number> {
+    return this.prisma.fixture.count({
+      where: {
+        division: { seasonId },
+        state: FixtureState.LOCKED,
+        OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
+      },
+    });
   }
 }

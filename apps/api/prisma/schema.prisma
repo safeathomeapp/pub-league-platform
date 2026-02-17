@@ -81,6 +81,7 @@ model Organisation {
 
   rulesets           Ruleset[]
   notificationOutbox NotificationOutbox[]
+  rosterTransfers    RosterTransferAudit[]
 }
 
 model User {
@@ -91,6 +92,7 @@ model User {
 
   memberships OrgMembership[]
   matchEvents MatchEvent[]
+  rosterTransfers RosterTransferAudit[]
 }
 
 model OrgMembership {
@@ -137,10 +139,15 @@ model Season {
   name      String
   startDate DateTime
   endDate   DateTime
+  rosterLockAfterAppearances     Int      @default(1)
+  allowMidSeasonTransfers        Boolean  @default(false)
+  requireAdminApprovalForTransfer Boolean @default(true)
+  maxTeamChangesAfterLock        Int      @default(0)
 
   league      League      @relation(fields: [leagueId], references: [id], onDelete: Cascade)
   divisions   Division[]
   teamPlayers TeamPlayer[]
+  rosterTransfers RosterTransferAudit[]
 }
 
 model Division {
@@ -164,6 +171,8 @@ model Team {
   homeFixtures Fixture[]    @relation("HomeTeam")
   awayFixtures Fixture[]    @relation("AwayTeam")
   tokens       MatchControlToken[]
+  transfersOut RosterTransferAudit[] @relation("RosterTransferFromTeam")
+  transfersIn  RosterTransferAudit[] @relation("RosterTransferToTeam")
 }
 
 model Player {
@@ -177,6 +186,7 @@ model Player {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   teams        TeamPlayer[]
   heldTokens   MatchControlToken[]
+  rosterTransfers RosterTransferAudit[]
 }
 
 model TeamPlayer {
@@ -284,4 +294,26 @@ model NotificationOutbox {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
   @@index([organisationId, status, scheduledFor])
+}
+
+model RosterTransferAudit {
+  id             String   @id @default(uuid())
+  organisationId String
+  seasonId       String
+  playerId       String
+  fromTeamId     String
+  toTeamId       String
+  actorUserId    String
+  reason         String
+  wasAdminOverride Boolean @default(false)
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  season       Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  fromTeam     Team         @relation("RosterTransferFromTeam", fields: [fromTeamId], references: [id], onDelete: Cascade)
+  toTeam       Team         @relation("RosterTransferToTeam", fields: [toTeamId], references: [id], onDelete: Cascade)
+  actorUser    User         @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, seasonId, playerId, createdAt])
 }

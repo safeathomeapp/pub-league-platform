@@ -1,11 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { OrgMembershipGuard } from '../../common/guards/org-membership.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AddTeamPlayerDto } from './dto/add-team-player.dto';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { CreateTeamDto } from './dto/create-team.dto';
+import { TransferSeasonPlayerDto } from './dto/transfer-season-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { TeamsPlayersService } from './teams-players.service';
@@ -61,5 +64,18 @@ export class TeamsPlayersController {
   @Roles('ORG_ADMIN', 'COMMISSIONER')
   removeTeamPlayer(@Param('orgId') orgId: string, @Param('teamId') teamId: string, @Param('playerId') playerId: string) {
     return this.teamsPlayers.removeTeamPlayer(orgId, teamId, playerId);
+  }
+
+  @Post('seasons/:seasonId/players/:playerId/transfer')
+  @Roles('ORG_ADMIN', 'COMMISSIONER')
+  transferSeasonPlayer(
+    @Param('orgId') orgId: string,
+    @Param('seasonId') seasonId: string,
+    @Param('playerId') playerId: string,
+    @CurrentUser() user: { id: string },
+    @Req() req: Request,
+    @Body() dto: TransferSeasonPlayerDto,
+  ) {
+    return this.teamsPlayers.transferSeasonPlayer(orgId, seasonId, playerId, dto.toTeamId, user.id, req.ctx?.role, dto.reason);
   }
 }
