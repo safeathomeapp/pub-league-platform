@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/kevth/Desktop/Projects/pub-league-platform/apps/web/app/layout.tsx"],"sourcesContent":["export default function RootLayout({\n  children,\n}: {\n  children: React.ReactNode;\n}) {\n  return (\n    <html lang=\"en\">\n      <body style={{ fontFamily: \"system-ui, -apple-system, Segoe UI, Roboto, sans-serif\", margin: 0 }}>\n        <div style={{ padding: 16, maxWidth: 960, margin: \"0 auto\" }}>\n          {children}\n        </div>\n      </body>\n    </html>\n  );\n}\n"],"names":[],"mappings":";;;;;;AAAe,SAAS,WAAW,EACjC,QAAQ,EAGT;IACC,qBACE,8OAAC;QAAK,MAAK;kBACT,cAAA,8OAAC;YAAK,OAAO;gBAAE,YAAY;gBAA0D,QAAQ;YAAE;sBAC7F,cAAA,8OAAC;gBAAI,OAAO;oBAAE,SAAS;oBAAI,UAAU;oBAAK,QAAQ;gBAAS;0BACxD;;;;;;;;;;;;;;;;AAKX"}},
-    {"offset": {"line": 45, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/kevth/Desktop/Projects/pub-league-platform/node_modules/next/src/server/route-modules/app-page/vendored/rsc/react-jsx-dev-runtime.ts"],"sourcesContent":["module.exports = (\n  require('../../module.compiled') as typeof import('../../module.compiled')\n).vendored['react-rsc']!.ReactJsxDevRuntime\n"],"names":["module","exports","require","vendored","ReactJsxDevRuntime"],"mappings":"AAAAA,OAAOC,OAAO,GACZC,QAAQ,4HACRC,QAAQ,CAAC,YAAY,CAAEC,kBAAkB","ignoreList":[0]}}]
-}
