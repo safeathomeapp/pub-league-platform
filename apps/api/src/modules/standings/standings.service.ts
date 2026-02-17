@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { MatchEventType, Prisma } from '@prisma/client';
+import { FixtureState, MatchEventType, Prisma } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 
 type StandingsRow = {
@@ -27,7 +27,10 @@ export class StandingsService {
       },
       include: {
         teams: { orderBy: { name: 'asc' } },
-        fixtures: { select: { id: true, homeTeamId: true, awayTeamId: true } },
+        fixtures: {
+          where: { state: FixtureState.LOCKED },
+          select: { id: true, homeTeamId: true, awayTeamId: true },
+        },
         season: { include: { league: { include: { ruleset: true } } } },
       },
     });

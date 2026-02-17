@@ -87,7 +87,7 @@ describe('disputes (e2e)', () => {
     await api(app)
       .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}/complete`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ expectedRevision: 0, homeFrames: 7, awayFrames: 5 })
+      .send({ expectedRevision: 0, homeFrames: 7, awayFrames: 5, reason: 'Admin lock override for setup' })
       .expect(201);
 
     const snapshotCountBefore = await prisma.standingsSnapshot.count({
@@ -108,10 +108,21 @@ describe('disputes (e2e)', () => {
     expect(Array.isArray(listed.body)).toBe(true);
     expect(listed.body.some((dispute: any) => dispute.id === created.body.id)).toBe(true);
 
+    await api(app)
+      .patch(`/api/v1/orgs/${orgId}/disputes/${created.body.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ status: 'resolved' })
+      .expect(400);
+
     const resolved = await api(app)
       .patch(`/api/v1/orgs/${orgId}/disputes/${created.body.id}`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ status: 'resolved', outcome: 'Score confirmed after review' })
+      .send({
+        status: 'resolved',
+        outcome: 'Score confirmed after review',
+        finalHomeFrames: 7,
+        finalAwayFrames: 5,
+      })
       .expect(200);
     expect(resolved.body.status).toBe('resolved');
     expect(resolved.body.outcome).toBe('Score confirmed after review');

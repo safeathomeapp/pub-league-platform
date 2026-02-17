@@ -63,40 +63,55 @@ export class MatchEventsService {
     orgId: string,
     fixtureId: string,
     actorUserId: string,
-    actorRole: string | undefined,
     data: {
       expectedRevision: number;
       homeFrames: number;
       awayFrames: number;
-      teamId?: string;
-      actorPlayerId?: string;
+      reason: string;
     },
   ) {
-    const event = await this.append(orgId, fixtureId, actorUserId, actorRole, {
-      eventType: MatchEventType.MATCH_COMPLETED,
-      expectedRevision: data.expectedRevision,
-      payload: { home_frames: data.homeFrames, away_frames: data.awayFrames },
-      teamId: data.teamId,
-      actorPlayerId: data.actorPlayerId,
+    const fixture = await this.getFixtureInOrg(orgId, fixtureId);
+
+    await this.prisma.$transaction(async tx => {
+      const currentRevision = await this.getCurrentRevision(tx, fixtureId);
+      if (data.expectedRevision !== currentRevision) {
+        throw new ConflictException(`Revision mismatch: expected ${currentRevision}`);
+      }
+
+      let nextRevision = currentRevision + 1;
+      await tx.matchEvent.create({
+        data: {
+          fixtureId,
+          revision: nextRevision,
+          eventType: MatchEventType.MATCH_COMPLETED,
+          actorUserId,
+          payload: { home_frames: data.homeFrames, away_frames: data.awayFrames } as Prisma.InputJsonValue,
+        },
+      });
+      nextRevision += 1;
+
+      await tx.matchEvent.create({
+        data: {
+          fixtureId,
+          revision: nextRevision,
+          eventType: MatchEventType.ADMIN_LOCK_OVERRIDE,
+          actorUserId,
+          payload: { reason: data.reason } as Prisma.InputJsonValue,
+        },
+      });
+
+      await tx.fixture.update({
+        where: { id: fixtureId },
+        data: { status: FixtureStatus.completed, state: FixtureState.LOCKED },
+      });
     });
 
-    await this.prisma.fixture.update({
-      where: { id: fixtureId },
-      data: { status: FixtureStatus.completed, state: FixtureState.LOCKED },
-    });
-
-    const fixture = await this.prisma.fixture.findUnique({
-      where: { id: fixtureId },
-      select: { divisionId: true },
-    });
-    if (fixture) {
-      // Keep snapshots warm immediately after match completion.
-      await this.standings.recomputeAndSnapshot(orgId, fixture.divisionId);
-    }
+    // Keep snapshots warm immediately after match completion.
+    await this.standings.recomputeAndSnapshot(orgId, fixture.divisionId);
 
     await this.notifications.queueFixtureCompleted(orgId, fixtureId, data.homeFrames, data.awayFrames);
 
-    return event;
+    return this.prisma.fixture.findUnique({ where: { id: fixtureId } });
   }
 
   async submit(

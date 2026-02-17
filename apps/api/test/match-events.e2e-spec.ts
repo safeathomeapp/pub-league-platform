@@ -132,11 +132,11 @@ describe('match-events (e2e)', () => {
         expectedRevision: 1,
         homeFrames: 7,
         awayFrames: 3,
+        reason: 'Admin lock override for verified score',
       })
       .expect(201);
 
-    expect(completed.body.revision).toBe(2);
-    expect(completed.body.eventType).toBe('MATCH_COMPLETED');
+    expect(completed.body.state).toBe('LOCKED');
 
     const fixture = await api(app)
       .get(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}`)
@@ -198,12 +198,12 @@ describe('match-events (e2e)', () => {
     await api(app)
       .post(`/api/v1/orgs/${orgId}/members`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ email: holderAEmail, role: 'PLAYER' })
+      .send({ email: holderAEmail, role: 'CAPTAIN' })
       .expect(201);
     await api(app)
       .post(`/api/v1/orgs/${orgId}/members`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ email: holderBEmail, role: 'PLAYER' })
+      .send({ email: holderBEmail, role: 'CAPTAIN' })
       .expect(201);
     await api(app)
       .post(`/api/v1/orgs/${orgId}/members`)
@@ -346,6 +346,17 @@ describe('match-events (e2e)', () => {
         actorPlayerId: playerB.body.id,
       })
       .expect(409);
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureTwoId}/complete`)
+      .set('Authorization', `Bearer ${holderAToken}`)
+      .send({
+        expectedRevision: 2,
+        homeFrames: 9,
+        awayFrames: 1,
+        reason: 'Attempted bypass',
+      })
+      .expect(403);
 
     await api(app)
       .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureTwoId}/submit`)

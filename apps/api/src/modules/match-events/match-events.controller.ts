@@ -35,15 +35,14 @@ export class MatchEventsController {
   }
 
   @Post('complete')
-  @Roles('ORG_ADMIN', 'COMMISSIONER', 'CAPTAIN', 'PLAYER')
+  @Roles('ORG_ADMIN', 'COMMISSIONER')
   complete(
     @Param('orgId') orgId: string,
     @Param('fixtureId') fixtureId: string,
     @CurrentUser() user: { id: string },
-    @Req() req: Request,
     @Body() dto: CompleteMatchDto,
   ) {
-    return this.events.complete(orgId, fixtureId, user.id, req.ctx?.role, dto);
+    return this.events.complete(orgId, fixtureId, user.id, dto);
   }
 
   @Post('submit')

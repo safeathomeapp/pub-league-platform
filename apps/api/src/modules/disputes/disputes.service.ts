@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DisputeStatus, FixtureState, FixtureStatus, MatchEventType, Prisma } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 import { StandingsService } from '../standings/standings.service';
@@ -57,7 +57,12 @@ export class DisputesService {
     orgId: string,
     disputeId: string,
     actorUserId: string,
-    data: { status?: DisputeStatus; outcome?: string },
+    data: {
+      status?: DisputeStatus;
+      outcome?: string;
+      finalHomeFrames?: number;
+      finalAwayFrames?: number;
+    },
   ) {
     const dispute = await this.prisma.dispute.findFirst({
       where: {
@@ -78,9 +83,28 @@ export class DisputesService {
       });
 
       if (next.status === DisputeStatus.resolved) {
+        if (
+          data.outcome === undefined
+          || data.finalHomeFrames === undefined
+          || data.finalAwayFrames === undefined
+        ) {
+          throw new BadRequestException('Resolved disputes require outcome and final score payload');
+        }
+
+        await this.appendEvent(tx, dispute.fixture.id, actorUserId, MatchEventType.MATCH_COMPLETED, {
+          home_frames: data.finalHomeFrames,
+          away_frames: data.finalAwayFrames,
+          source: 'DISPUTE_RESOLUTION',
+        });
+
         await this.appendEvent(tx, dispute.fixture.id, actorUserId, MatchEventType.DISPUTE_RESOLVED, {
           dispute_id: next.id,
-          outcome: next.outcome,
+          resolution: {
+            outcome: next.outcome,
+            final_home_frames: data.finalHomeFrames,
+            final_away_frames: data.finalAwayFrames,
+            resolved_by_user_id: actorUserId,
+          },
         });
 
         await tx.fixture.update({

@@ -114,7 +114,7 @@ describe('notifications (e2e)', () => {
     await api(app)
       .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}/complete`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ expectedRevision: 0, homeFrames: 7, awayFrames: 5 })
+      .send({ expectedRevision: 0, homeFrames: 7, awayFrames: 5, reason: 'Admin lock override for notifications test' })
       .expect(201);
 
     const outbox = await api(app)

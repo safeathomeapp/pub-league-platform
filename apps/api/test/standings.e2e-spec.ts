@@ -59,7 +59,7 @@ describe('standings (e2e)', () => {
       .send({ name: 'Division A' })
       .expect(201);
 
-    await api(app).post(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/teams`).set('Authorization', `Bearer ${ownerToken}`).send({ name: 'Team A' }).expect(201);
+    const teamA = await api(app).post(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/teams`).set('Authorization', `Bearer ${ownerToken}`).send({ name: 'Team A' }).expect(201);
     await api(app).post(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/teams`).set('Authorization', `Bearer ${ownerToken}`).send({ name: 'Team B' }).expect(201);
     await api(app).post(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/teams`).set('Authorization', `Bearer ${ownerToken}`).send({ name: 'Team C' }).expect(201);
 
@@ -87,16 +87,40 @@ describe('standings (e2e)', () => {
     const scoreForTeamAWin = (fixture: any) =>
       fixture.homeTeam.name === 'Team A' ? { homeFrames: 7, awayFrames: 3 } : { homeFrames: 3, awayFrames: 7 };
 
-    await api(app)
-      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureAB.id}/complete`)
+    const playerA = await api(app)
+      .post(`/api/v1/orgs/${orgId}/players`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ expectedRevision: 0, ...scoreForTeamAWin(fixtureAB) })
+      .send({ displayName: 'Team A Captain', contactEmail: `team_a_cap_${Date.now()}@example.com` })
       .expect(201);
 
     await api(app)
-      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureAC.id}/complete`)
+      .post(`/api/v1/orgs/${orgId}/teams/${teamA.body.id}/players`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ expectedRevision: 0, ...scoreForTeamAWin(fixtureAC) })
+      .send({ playerId: playerA.body.id, role: 'CAPTAIN' })
+      .expect(201);
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureAC.id}/tokens:issue`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ teamId: teamA.body.id, holderPlayerId: playerA.body.id })
+      .expect(201);
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureAC.id}/submit`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        expectedRevision: 1,
+        homeFrames: fixtureAC.homeTeam.name === 'Team A' ? 7 : 2,
+        awayFrames: fixtureAC.homeTeam.name === 'Team A' ? 2 : 7,
+        teamId: teamA.body.id,
+        actorPlayerId: playerA.body.id,
+      })
+      .expect(201);
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureAB.id}/complete`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ expectedRevision: 0, ...scoreForTeamAWin(fixtureAB), reason: 'Admin lock override for standings test' })
       .expect(201);
 
     const standingsOne = await api(app)
@@ -107,8 +131,8 @@ describe('standings (e2e)', () => {
     expect(Array.isArray(standingsOne.body.rows)).toBe(true);
     expect(standingsOne.body.rows).toHaveLength(3);
     expect(standingsOne.body.rows[0].teamName).toBe('Team A');
-    expect(standingsOne.body.rows[0].matchPoints).toBe(4);
-    expect(standingsOne.body.rows[0].matchesWon).toBe(2);
+    expect(standingsOne.body.rows[0].matchPoints).toBe(2);
+    expect(standingsOne.body.rows[0].matchesWon).toBe(1);
 
     const standingsTwo = await api(app)
       .get(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/standings`)

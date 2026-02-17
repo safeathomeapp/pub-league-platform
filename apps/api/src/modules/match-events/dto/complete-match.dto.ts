@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsUUID, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID, Min, MinLength } from 'class-validator';
 
 export class CompleteMatchDto {
   @Type(() => Number)
@@ -24,4 +24,8 @@ export class CompleteMatchDto {
   @IsOptional()
   @IsUUID()
   actorPlayerId?: string;
+
+  @IsString()
+  @MinLength(3)
+  reason!: string;
 }
