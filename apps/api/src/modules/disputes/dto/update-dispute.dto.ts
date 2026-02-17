@@ -1,9 +1,10 @@
-import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { DisputeStatus } from '@prisma/client';
+import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class UpdateDisputeDto {
   @IsOptional()
-  @IsIn(['open', 'under_review', 'resolved', 'rejected'])
-  status?: string;
+  @IsEnum(DisputeStatus)
+  status?: DisputeStatus;
 
   @IsOptional()
   @IsString()

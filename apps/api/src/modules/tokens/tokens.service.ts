@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { MatchEventType, Prisma } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 
 @Injectable()
@@ -15,6 +15,7 @@ export class TokensService {
     await this.assertFixtureInOrg(orgId, fixtureId);
     await this.assertTeamOnFixture(fixtureId, dto.teamId);
     await this.assertPlayerInOrg(orgId, dto.holderPlayerId);
+    await this.assertPlayerOnTeam(dto.teamId, dto.holderPlayerId);
 
     const active = await this.findActiveToken(fixtureId, dto.teamId);
     const now = new Date();
@@ -35,7 +36,7 @@ export class TokensService {
         },
       });
 
-      await this.appendEvent(tx, fixtureId, actorUserId, 'TOKEN_ISSUED', {
+      await this.appendEvent(tx, fixtureId, actorUserId, MatchEventType.TOKEN_ISSUED, {
         team_id: dto.teamId,
         holder_player_id: dto.holderPlayerId,
       });
@@ -53,6 +54,7 @@ export class TokensService {
     await this.assertFixtureInOrg(orgId, fixtureId);
     await this.assertTeamOnFixture(fixtureId, dto.teamId);
     await this.assertPlayerInOrg(orgId, dto.toPlayerId);
+    await this.assertPlayerOnTeam(dto.teamId, dto.toPlayerId);
 
     const token = await this.findActiveToken(fixtureId, dto.teamId);
     if (!token) throw new NotFoundException('Active token not found');
@@ -69,7 +71,7 @@ export class TokensService {
         },
       });
 
-      await this.appendEvent(tx, fixtureId, actorUserId, 'TOKEN_TRANSFERRED', {
+      await this.appendEvent(tx, fixtureId, actorUserId, MatchEventType.TOKEN_TRANSFERRED, {
         team_id: dto.teamId,
         from_player_id: fromPlayerId,
         to_player_id: dto.toPlayerId,
@@ -88,6 +90,7 @@ export class TokensService {
     await this.assertFixtureInOrg(orgId, fixtureId);
     await this.assertTeamOnFixture(fixtureId, dto.teamId);
     await this.assertPlayerInOrg(orgId, dto.playerId);
+    await this.assertPlayerOnTeam(dto.teamId, dto.playerId);
 
     const token = await this.findActiveToken(fixtureId, dto.teamId);
     if (!token) throw new NotFoundException('Active token not found');
@@ -100,7 +103,7 @@ export class TokensService {
         data: { acceptedAt: new Date() },
       });
 
-      await this.appendEvent(tx, fixtureId, actorUserId, 'TOKEN_ACCEPTED', {
+      await this.appendEvent(tx, fixtureId, actorUserId, MatchEventType.TOKEN_ACCEPTED, {
         team_id: dto.teamId,
         player_id: dto.playerId,
       });
@@ -147,6 +150,14 @@ export class TokensService {
     if (!player) throw new NotFoundException('Player not found');
   }
 
+  private async assertPlayerOnTeam(teamId: string, playerId: string): Promise<void> {
+    const rosterEntry = await this.prisma.teamPlayer.findUnique({
+      where: { teamId_playerId: { teamId, playerId } },
+      select: { id: true },
+    });
+    if (!rosterEntry) throw new ForbiddenException('Player must belong to team roster');
+  }
+
   private async findActiveToken(fixtureId: string, teamId: string) {
     return this.prisma.matchControlToken.findFirst({
       where: {
@@ -162,7 +173,7 @@ export class TokensService {
     tx: Prisma.TransactionClient,
     fixtureId: string,
     actorUserId: string,
-    eventType: string,
+    eventType: MatchEventType,
     payload: Prisma.InputJsonValue,
   ) {
     const latest = await tx.matchEvent.findFirst({

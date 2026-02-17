@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { MatchEventType, Prisma } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 
 type StandingsRow = {
@@ -54,7 +54,7 @@ export class StandingsService {
       const events = await this.prisma.matchEvent.findMany({
         where: {
           fixtureId: { in: division.fixtures.map(fixture => fixture.id) },
-          eventType: 'MATCH_COMPLETED',
+          eventType: MatchEventType.MATCH_COMPLETED,
         },
         orderBy: [{ fixtureId: 'asc' }, { revision: 'desc' }],
       });

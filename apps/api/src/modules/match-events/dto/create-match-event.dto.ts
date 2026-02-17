@@ -1,10 +1,10 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsObject, IsOptional, IsString, IsUUID, Min, MinLength } from 'class-validator';
+import { MatchEventType } from '@prisma/client';
+import { IsEnum, IsInt, IsObject, IsOptional, IsUUID, Min } from 'class-validator';
 
 export class CreateMatchEventDto {
-  @IsString()
-  @MinLength(3)
-  eventType!: string;
+  @IsEnum(MatchEventType)
+  eventType!: MatchEventType;
 
   @Type(() => Number)
   @IsInt()

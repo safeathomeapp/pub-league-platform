@@ -68,7 +68,15 @@ export class TeamsPlayersService {
   }
 
   async addTeamPlayer(orgId: string, teamId: string, playerId: string, role: string) {
-    await this.assertTeamInOrg(orgId, teamId);
+    const team = await this.prisma.team.findFirst({
+      where: {
+        id: teamId,
+        division: { season: { league: { organisationId: orgId } } },
+      },
+      select: { id: true, division: { select: { seasonId: true } } },
+    });
+    if (!team) throw new NotFoundException('Team not found');
+
     const player = await this.prisma.player.findFirst({
       where: { id: playerId, organisationId: orgId },
       select: { id: true },
@@ -77,11 +85,11 @@ export class TeamsPlayersService {
 
     try {
       return await this.prisma.teamPlayer.create({
-        data: { teamId, playerId, role: role as any },
+        data: { teamId, seasonId: team.division.seasonId, playerId, role: role as any },
         include: { player: true, team: true },
       });
     } catch {
-      throw new ConflictException('Player already in team roster');
+      throw new ConflictException('Player already in team roster for this season');
     }
   }
 

@@ -18,6 +18,24 @@ enum FixtureStatus {
   completed
 }
 
+enum MatchEventType {
+  FRAME_RECORDED
+  MATCH_EDITED
+  MATCH_COMPLETED
+  TOKEN_ISSUED
+  TOKEN_TRANSFERRED
+  TOKEN_ACCEPTED
+  DISPUTE_OPENED
+  DISPUTE_RESOLVED
+}
+
+enum DisputeStatus {
+  open
+  under_review
+  resolved
+  rejected
+}
+
 enum Role {
   ORG_ADMIN
   COMMISSIONER
@@ -58,6 +76,7 @@ model User {
   createdAt DateTime @default(now())
 
   memberships OrgMembership[]
+  matchEvents MatchEvent[]
 }
 
 model OrgMembership {
@@ -105,8 +124,9 @@ model Season {
   startDate DateTime
   endDate   DateTime
 
-  league    League     @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  divisions Division[]
+  league      League      @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  divisions   Division[]
+  teamPlayers TeamPlayer[]
 }
 
 model Division {
@@ -114,9 +134,10 @@ model Division {
   seasonId String
   name     String
 
-  season   Season    @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  teams    Team[]
-  fixtures Fixture[]
+  season             Season              @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  teams              Team[]
+  fixtures           Fixture[]
+  standingsSnapshots StandingsSnapshot[]
 }
 
 model Team {
@@ -128,6 +149,7 @@ model Team {
   roster       TeamPlayer[]
   homeFixtures Fixture[]    @relation("HomeTeam")
   awayFixtures Fixture[]    @relation("AwayTeam")
+  tokens       MatchControlToken[]
 }
 
 model Player {
@@ -140,19 +162,23 @@ model Player {
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   teams        TeamPlayer[]
+  heldTokens   MatchControlToken[]
 }
 
 model TeamPlayer {
   id       String   @id @default(uuid())
   teamId   String
+  seasonId String
   playerId String
   role     Role // CAPTAIN or PLAYER (reuse enum; keep simple)
   joinedAt DateTime @default(now())
 
   team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, playerId])
+  @@unique([playerId, seasonId])
 }
 
 model Fixture {
@@ -181,19 +207,22 @@ model MatchControlToken {
   acceptedAt            DateTime?
   revokedAt             DateTime?
 
-  fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  fixture       Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  team          Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  currentHolder Player  @relation(fields: [currentHolderPlayerId], references: [id], onDelete: Restrict)
 }
 
 model MatchEvent {
   id          String   @id @default(uuid())
   fixtureId   String
   revision    Int
-  eventType   String
+  eventType   MatchEventType
   actorUserId String
   payload     Json
   createdAt   DateTime @default(now())
 
-  fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  fixture   Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  actorUser User    @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@unique([fixtureId, revision])
   @@index([fixtureId, createdAt])
@@ -205,13 +234,15 @@ model StandingsSnapshot {
   data       Json
   createdAt  DateTime @default(now())
 
+  division Division @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+
   @@index([divisionId, createdAt])
 }
 
 model Dispute {
   id        String   @id @default(uuid())
   fixtureId String
-  status    String // open|under_review|resolved|rejected
+  status    DisputeStatus
   reason    String?
   outcome   String?
   createdAt DateTime @default(now())

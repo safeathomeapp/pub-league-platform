@@ -1,5 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { FixtureStatus, MatchEventType, Prisma } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StandingsService } from '../standings/standings.service';
@@ -18,7 +18,7 @@ export class MatchEventsService {
     actorUserId: string,
     actorRole: string | undefined,
     data: {
-      eventType: string;
+      eventType: MatchEventType;
       expectedRevision: number;
       payload: Record<string, unknown>;
       teamId?: string;
@@ -73,7 +73,7 @@ export class MatchEventsService {
     },
   ) {
     const event = await this.append(orgId, fixtureId, actorUserId, actorRole, {
-      eventType: 'MATCH_COMPLETED',
+      eventType: MatchEventType.MATCH_COMPLETED,
       expectedRevision: data.expectedRevision,
       payload: { home_frames: data.homeFrames, away_frames: data.awayFrames },
       teamId: data.teamId,
@@ -82,7 +82,7 @@ export class MatchEventsService {
 
     await this.prisma.fixture.update({
       where: { id: fixtureId },
-      data: { status: 'completed' },
+      data: { status: FixtureStatus.completed },
     });
 
     const fixture = await this.prisma.fixture.findUnique({

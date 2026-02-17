@@ -1,4 +1,5 @@
-import { IsDateString, IsIn, IsOptional } from 'class-validator';
+import { FixtureStatus } from '@prisma/client';
+import { IsDateString, IsEnum, IsOptional } from 'class-validator';
 
 export class UpdateFixtureDto {
   @IsOptional()
@@ -6,6 +7,6 @@ export class UpdateFixtureDto {
   scheduledAt?: string;
 
   @IsOptional()
-  @IsIn(['scheduled', 'in_progress', 'completed'])
-  status?: string;
+  @IsEnum(FixtureStatus)
+  status?: FixtureStatus;
 }

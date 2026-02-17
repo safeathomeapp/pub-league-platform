@@ -68,6 +68,11 @@ describe('teams/players/rosters (e2e)', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ name: 'The Breakers' })
       .expect(201);
+    const otherTeam = await api(app)
+      .post(`/api/v1/orgs/${ownerOrg.body.id}/divisions/${division.body.id}/teams`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'The Chalkers' })
+      .expect(201);
 
     expect(team.body.divisionId).toBe(division.body.id);
 
@@ -117,6 +122,12 @@ describe('teams/players/rosters (e2e)', () => {
       .expect(201);
     expect(rosterAdd.body.teamId).toBe(team.body.id);
     expect(rosterAdd.body.playerId).toBe(player.body.id);
+
+    await api(app)
+      .post(`/api/v1/orgs/${ownerOrg.body.id}/teams/${otherTeam.body.id}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ playerId: player.body.id, role: 'PLAYER' })
+      .expect(409);
 
     const rosterRemove = await api(app)
       .delete(`/api/v1/orgs/${ownerOrg.body.id}/teams/${team.body.id}/players/${player.body.id}`)

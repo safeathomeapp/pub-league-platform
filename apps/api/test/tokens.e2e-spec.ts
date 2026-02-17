@@ -82,6 +82,17 @@ describe('tokens (e2e)', () => {
       .expect(201);
 
     await api(app)
+      .post(`/api/v1/orgs/${orgId}/teams/${teamA.body.id}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ playerId: playerOne.body.id, role: 'CAPTAIN' })
+      .expect(201);
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/teams/${teamA.body.id}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ playerId: playerTwo.body.id, role: 'PLAYER' })
+      .expect(201);
+
+    await api(app)
       .post(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/fixtures:generate`)
       .set('Authorization', `Bearer ${ownerToken}`)
       .expect(201);

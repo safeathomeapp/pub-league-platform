@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { FixtureStatus } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 import { GenerateRoundRobinResponseDto } from './dto/generate-round-robin-response.dto';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -69,7 +70,7 @@ export class FixturesService {
   async listForDivision(
     orgId: string,
     divisionId: string,
-    query?: { from?: string; to?: string; status?: string },
+    query?: { from?: string; to?: string; status?: FixtureStatus },
   ) {
     await this.assertDivisionInOrg(orgId, divisionId);
     const scheduledAt = {
@@ -79,7 +80,7 @@ export class FixturesService {
     return this.prisma.fixture.findMany({
       where: {
         divisionId,
-        ...(query?.status ? { status: query.status as any } : {}),
+        ...(query?.status ? { status: query.status } : {}),
         ...(Object.keys(scheduledAt).length ? { scheduledAt } : {}),
       },
       include: {
@@ -108,7 +109,7 @@ export class FixturesService {
   async update(
     orgId: string,
     fixtureId: string,
-    data: { scheduledAt?: string; status?: string },
+    data: { scheduledAt?: string; status?: FixtureStatus },
   ) {
     const existing = await this.getById(orgId, fixtureId);
 
@@ -117,7 +118,7 @@ export class FixturesService {
       where: { id: fixtureId },
       data: {
         ...(data.scheduledAt !== undefined ? { scheduledAt: new Date(data.scheduledAt) } : {}),
-        ...(data.status !== undefined ? { status: data.status as any } : {}),
+        ...(data.status !== undefined ? { status: data.status } : {}),
       },
       include: {
         homeTeam: true,

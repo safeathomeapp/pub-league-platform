@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { DisputeStatus, MatchEventType, Prisma } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 import { StandingsService } from '../standings/standings.service';
 
@@ -24,12 +24,12 @@ export class DisputesService {
       const dispute = await tx.dispute.create({
         data: {
           fixtureId,
-          status: 'open',
+          status: DisputeStatus.open,
           reason: reason ?? null,
         },
       });
 
-      await this.appendEvent(tx, fixtureId, actorUserId, 'DISPUTE_OPENED', {
+      await this.appendEvent(tx, fixtureId, actorUserId, MatchEventType.DISPUTE_OPENED, {
         dispute_id: dispute.id,
       });
 
@@ -57,7 +57,7 @@ export class DisputesService {
     orgId: string,
     disputeId: string,
     actorUserId: string,
-    data: { status?: string; outcome?: string },
+    data: { status?: DisputeStatus; outcome?: string },
   ) {
     const dispute = await this.prisma.dispute.findFirst({
       where: {
@@ -77,8 +77,8 @@ export class DisputesService {
         },
       });
 
-      if (next.status === 'resolved') {
-        await this.appendEvent(tx, dispute.fixture.id, actorUserId, 'DISPUTE_RESOLVED', {
+      if (next.status === DisputeStatus.resolved) {
+        await this.appendEvent(tx, dispute.fixture.id, actorUserId, MatchEventType.DISPUTE_RESOLVED, {
           dispute_id: next.id,
           outcome: next.outcome,
         });
@@ -87,7 +87,7 @@ export class DisputesService {
       return next;
     });
 
-    if (updated.status === 'resolved') {
+    if (updated.status === DisputeStatus.resolved) {
       // Keep standings consistent after dispute resolution updates.
       await this.standings.recomputeAndSnapshot(orgId, dispute.fixture.divisionId);
     }
@@ -99,7 +99,7 @@ export class DisputesService {
     tx: Prisma.TransactionClient,
     fixtureId: string,
     actorUserId: string,
-    eventType: string,
+    eventType: MatchEventType,
     payload: Prisma.InputJsonValue,
   ) {
     const latest = await tx.matchEvent.findFirst({

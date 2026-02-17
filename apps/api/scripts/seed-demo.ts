@@ -200,6 +200,12 @@ async function upsertFixtures(divisionId: string, teams: Array<{ id: string }>) 
 async function upsertTeamPlayers(orgId: string, teams: Array<{ id: string; name?: string }>) {
   let index = 1;
   for (const team of teams) {
+    const teamWithSeason = await prisma.team.findUnique({
+      where: { id: team.id },
+      select: { division: { select: { seasonId: true } } },
+    });
+    if (!teamWithSeason) continue;
+
     const seededPlayers = [
       {
         displayName: `Captain ${index}`,
@@ -243,7 +249,7 @@ async function upsertTeamPlayers(orgId: string, teams: Array<{ id: string; name?
       });
       if (!rosterEntry) {
         await prisma.teamPlayer.create({
-          data: { teamId: team.id, playerId: player.id, role: seeded.role },
+          data: { teamId: team.id, seasonId: teamWithSeason.division.seasonId, playerId: player.id, role: seeded.role },
         });
       } else {
         await prisma.teamPlayer.update({
