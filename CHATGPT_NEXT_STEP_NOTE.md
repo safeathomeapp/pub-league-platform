@@ -31,6 +31,7 @@ Use this file for latest completion status and immediate next implementation act
 
 ## Suggested next step (from roadmap)
 Proceed to Milestone 8 (Phase 2): TV mode overlay + pub display.
+- Milestone 8 contract: `docs/28-M8-TV-Overlay-Contract.md`
 
 Suggested prompt:
 "Implement Milestone 8 TV mode overlay minimal slice (read-only live match/fixture/standings view with sponsor slot rendering), add API/web tests for the touched flow, and update session docs with no unrelated refactors."

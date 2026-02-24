@@ -9,6 +9,7 @@ This is the single docs entry point for the pivot era.
 - `/AGENTS.md` (operating rules and engineering guardrails)
 - `/README.md` (repo boot and runtime basics)
 - `/docs/27-Deep-Code-Audit-2026-02-24.md` (current state audit and gap report)
+- `/docs/28-M8-TV-Overlay-Contract.md` (Milestone 8 implementation contract)
 
 ## Current milestone checkpoint
 Based on the latest session notes, implementation is complete through Milestone 7 (including effective-dated transfer workflow and transfer history reads).
