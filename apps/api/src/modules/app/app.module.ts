@@ -18,6 +18,7 @@ import { DisputesModule } from '../disputes/disputes.module';
 import { ExportsModule } from '../exports/exports.module';
 import { StatsModule } from '../stats/stats.module';
 import { SponsorsModule } from '../sponsors/sponsors.module';
+import { TvModule } from '../tv/tv.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from '../../common/middleware/request-id.middleware';
 
@@ -42,6 +43,7 @@ import { RequestIdMiddleware } from '../../common/middleware/request-id.middlewa
     ExportsModule,
     StatsModule,
     SponsorsModule,
+    TvModule,
   ],
   controllers: [HealthController],
 })

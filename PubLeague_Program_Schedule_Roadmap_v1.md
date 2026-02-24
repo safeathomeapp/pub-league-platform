@@ -14,7 +14,9 @@ This document is the authoritative roadmap for the pivot. It defines the sequenc
   - `docs/Sessions/2026-02-17_22-54-23-m6-web-sponsors-admin-ui.md`
   - `docs/Sessions/2026-02-17_23-12-24-web-match-night-signoff-ux.md`
   - `docs/Sessions/2026-02-24_11-00-00-m7-effective-date-transfer-history.md`
-- Active next milestone: Milestone 8 (Phase 2 TV mode overlay + pub display).
+- Milestone 8 thin slice started:
+  - `docs/Sessions/2026-02-24_12-00-00-m8-tv-overlay-thin-slice.md`
+- Active milestone: Milestone 8 (Phase 2 TV mode overlay + pub display).
 
 ---
 

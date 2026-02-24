@@ -192,7 +192,6 @@ function FixtureRow(props: {
           <select value={status} onChange={e => setStatus(e.target.value as Fixture['status'])}>
             <option value="scheduled">scheduled</option>
             <option value="in_progress">in_progress</option>
-            <option value="completed">completed</option>
           </select>
           <button type="button" onClick={() => void onUpdate(fixture.id, scheduledAt, status)}>
             Save
