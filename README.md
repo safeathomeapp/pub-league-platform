@@ -29,3 +29,5 @@ Copy env files:
 ## Notes
 - This is a minimal skeleton. Modules/controllers are placeholders so Codex/Claude Code can fill in.
 - Multi-tenancy enforced by `organisationId` in schema and request scoping (to be implemented).
+- Canonical pivot roadmap: `/PubLeague_Program_Schedule_Roadmap_v1.md`
+- Latest status + next action: `/CHATGPT_NEXT_STEP_NOTE.md`

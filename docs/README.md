@@ -1,6 +1,11 @@
 # Pub League Platform — Documentation Pack
 Generated: 2026-02-12
 
+## Pivot-era entry point
+- [PIVOT_INDEX.md](PIVOT_INDEX.md) (current canonical docs + latest session truth set)
+- [27-Deep-Code-Audit-2026-02-24.md](27-Deep-Code-Audit-2026-02-24.md) (current state and prioritized findings)
+
+## Legacy ordered pack (historical reference)
 This pack is ordered. Read top to bottom.
 
 1. [00-Executive-Summary.md](00-Executive-Summary.md)

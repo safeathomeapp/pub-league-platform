@@ -263,19 +263,19 @@ describe('teams/players/rosters (e2e)', () => {
     await api(app)
       .post(`/api/v1/orgs/${orgId}/seasons/${season.body.id}/players/${lockedPlayer.body.id}/transfer`)
       .set('Authorization', `Bearer ${captainToken}`)
-      .send({ toTeamId: teamB.body.id, reason: 'Captain requested move' })
+      .send({ toTeamId: teamB.body.id, effectiveFrom: new Date().toISOString(), reason: 'Captain requested move' })
       .expect(403);
 
     await api(app)
       .post(`/api/v1/orgs/${orgId}/seasons/${season.body.id}/players/${lockedPlayer.body.id}/transfer`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ toTeamId: teamB.body.id, reason: '' })
+      .send({ toTeamId: teamB.body.id, effectiveFrom: new Date().toISOString(), reason: '' })
       .expect(400);
 
     const transferredLocked = await api(app)
       .post(`/api/v1/orgs/${orgId}/seasons/${season.body.id}/players/${lockedPlayer.body.id}/transfer`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ toTeamId: teamB.body.id, reason: 'Hardship override approved' })
+      .send({ toTeamId: teamB.body.id, effectiveFrom: new Date().toISOString(), reason: 'Hardship override approved' })
       .expect(201);
     expect(transferredLocked.body.teamId).toBe(teamB.body.id);
 
@@ -294,13 +294,13 @@ describe('teams/players/rosters (e2e)', () => {
     await api(app)
       .post(`/api/v1/orgs/${orgId}/seasons/${season.body.id}/players/${zeroAppearancesPlayer.body.id}/transfer`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ toTeamId: teamB.body.id, reason: '' })
+      .send({ toTeamId: teamB.body.id, effectiveFrom: new Date().toISOString(), reason: '' })
       .expect(400);
 
     const transferredZero = await api(app)
       .post(`/api/v1/orgs/${orgId}/seasons/${season.body.id}/players/${zeroAppearancesPlayer.body.id}/transfer`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ toTeamId: teamB.body.id, reason: 'Admin approved early-season move' })
+      .send({ toTeamId: teamB.body.id, effectiveFrom: new Date().toISOString(), reason: 'Admin approved early-season move' })
       .expect(201);
     expect(transferredZero.body.teamId).toBe(teamB.body.id);
 
@@ -309,5 +309,125 @@ describe('teams/players/rosters (e2e)', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .expect(200);
     expect(standingsAfter.body.rows).toEqual(standingsBefore.body.rows);
+  });
+
+  it('supports future-dated transfer scheduling and transfer history listing', async () => {
+    const ownerEmail = `transfer_owner_${Date.now()}@example.com`;
+    const outsiderEmail = `transfer_outsider_${Date.now()}@example.com`;
+    const password = 'password1234';
+
+    const ownerReg = await api(app).post('/api/v1/auth/register').send({ email: ownerEmail, password }).expect(201);
+    const ownerToken = ownerReg.body.accessToken;
+    const outsiderReg = await api(app).post('/api/v1/auth/register').send({ email: outsiderEmail, password }).expect(201);
+    const outsiderToken = outsiderReg.body.accessToken;
+
+    const org = await api(app)
+      .post('/api/v1/orgs')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Transfer Org' })
+      .expect(201);
+    const orgId = org.body.id as string;
+
+    const outsiderOrg = await api(app)
+      .post('/api/v1/orgs')
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .send({ name: 'Outsider Org' })
+      .expect(201);
+
+    const ruleset = await api(app)
+      .post(`/api/v1/orgs/${orgId}/rulesets`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        name: 'Transfer Ruleset',
+        sport: 'pool',
+        config: { points_model: { win: 2, draw: 1, loss: 0 } },
+      })
+      .expect(201);
+
+    const league = await api(app)
+      .post(`/api/v1/orgs/${orgId}/leagues`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Transfer League', sport: 'pool', rulesetId: ruleset.body.id })
+      .expect(201);
+
+    const season = await api(app)
+      .post(`/api/v1/orgs/${orgId}/leagues/${league.body.id}/seasons`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        name: 'Transfer Season',
+        startDate: '2026-01-01T00:00:00.000Z',
+        endDate: '2026-12-31T00:00:00.000Z',
+      })
+      .expect(201);
+
+    const division = await api(app)
+      .post(`/api/v1/orgs/${orgId}/seasons/${season.body.id}/divisions`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Division A' })
+      .expect(201);
+
+    const teamA = await api(app)
+      .post(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/teams`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Team A' })
+      .expect(201);
+    const teamB = await api(app)
+      .post(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/teams`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Team B' })
+      .expect(201);
+
+    const player = await api(app)
+      .post(`/api/v1/orgs/${orgId}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ displayName: 'Future Move Player', contactEmail: `future_${Date.now()}@example.com` })
+      .expect(201);
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/teams/${teamA.body.id}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ playerId: player.body.id, role: 'PLAYER' })
+      .expect(201);
+
+    const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const scheduleTransfer = await api(app)
+      .post(`/api/v1/orgs/${orgId}/seasons/${season.body.id}/players/${player.body.id}/transfer`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ toTeamId: teamB.body.id, effectiveFrom: futureDate, reason: 'Scheduled for next match day' })
+      .expect(201);
+
+    expect(scheduleTransfer.body.pending).toBe(true);
+    expect(scheduleTransfer.body.fromTeamId).toBe(teamA.body.id);
+    expect(scheduleTransfer.body.toTeamId).toBe(teamB.body.id);
+
+    const teamsBefore = await api(app)
+      .get(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/teams`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    const teamABefore = teamsBefore.body.find((t: { id: string }) => t.id === teamA.body.id);
+    const teamBBefore = teamsBefore.body.find((t: { id: string }) => t.id === teamB.body.id);
+    expect(teamABefore.roster.some((entry: { playerId: string }) => entry.playerId === player.body.id)).toBe(true);
+    expect(teamBBefore.roster.some((entry: { playerId: string }) => entry.playerId === player.body.id)).toBe(false);
+
+    const history = await api(app)
+      .get(`/api/v1/orgs/${orgId}/seasons/${season.body.id}/transfers?playerId=${player.body.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+
+    expect(Array.isArray(history.body)).toBe(true);
+    expect(history.body.length).toBeGreaterThanOrEqual(1);
+    expect(history.body[0].playerId).toBe(player.body.id);
+    expect(history.body[0].effectiveFrom).toBeTruthy();
+    expect(history.body[0].appliedAt).toBeNull();
+
+    await api(app)
+      .get(`/api/v1/orgs/${orgId}/seasons/${season.body.id}/transfers`)
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .expect(403);
+
+    await api(app)
+      .get(`/api/v1/orgs/${outsiderOrg.body.id}/seasons/${season.body.id}/transfers`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(403);
   });
 });

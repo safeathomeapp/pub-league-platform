@@ -1,38 +1,36 @@
 # Handoff Note For ChatGPT (Next Step)
+Updated: 2026-02-24
+
+Companion to `/PubLeague_Program_Schedule_Roadmap_v1.md`.
+Use this file for latest completion status and immediate next implementation action.
 
 ## Current state (completed)
-- Milestone 2 captain workflow implemented:
-  - submit -> awaiting opponent
-  - approve -> locked
-  - reject -> disputed
-- Tightening pass done:
-  - `/fixtures/:fixtureId/complete` restricted to ORG_ADMIN/COMMISSIONER (admin override path)
-  - dispute resolution requires payload and locks fixture only on valid resolution
-  - standings derived from LOCKED fixtures only
-- Season roster lock policy implemented:
-  - season policy fields added
-  - admin transfer endpoint added
-  - transfer policy enforcement + audit trail added
-  - remove/add bypass guarded
+- Completed through Milestone 7.
+- Milestone 5: head-to-head stats endpoint implemented and tested.
+- Milestone 6: sponsor slot API implemented and tested.
+- Web wiring completed for:
+  - sponsors admin page
+  - match-night submit/approve/reject UX
+- Milestone 7 implementation completed:
+  - effective-dated transfers (`effectiveFrom`)
+  - pending transfer application (`appliedAt`)
+  - transfer history endpoint and filters
+  - E2E coverage for future-dated transfer + org-scoped transfer history reads
 
-## Recent commits
-- `6a05567` docs: add roadmap + pivot pack + audit inventory
-- `0e6e682` feat: captain submit + opponent sign-off workflow
-- `42a1049` chore: harden workflow (admin complete lock + dispute resolution payload + locked-only standings)
-- `73121e2` feat: season roster lock policy + admin transfer override
+## Current source session docs (active truth set)
+- `docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
+- `docs/Sessions/2026-02-17_21-06-21-m6-sponsor-slots-minimal.md`
+- `docs/Sessions/2026-02-17_22-54-23-m6-web-sponsors-admin-ui.md`
+- `docs/Sessions/2026-02-17_23-12-24-web-match-night-signoff-ux.md`
+- `docs/Sessions/2026-02-24_10-00-00-m7-gap-audit-transfer-roster.md`
+- `docs/Sessions/2026-02-24_11-00-00-m7-effective-date-transfer-history.md`
 
-## Migrations
-- `20260217164630_baseline`
-- `20260217164353_season_roster_lock_policy`
-
-## Session docs
-- `docs/Sessions/2026-02-17_19-01-10-m2-docs-roadmap-pivot-audit.md`
-- `docs/Sessions/2026-02-17_19-01-40-m2-captain-signoff-workflow.md`
-- `docs/Sessions/2026-02-17_19-02-12-m2-1-workflow-hardening.md`
-- `docs/Sessions/2026-02-17_19-02-43-season-roster-lock-policy-admin-override.md`
+## Archive note
+- Older session notes were moved to `docs/archive/sessions-superseded/`.
+- Deep audit report: `docs/27-Deep-Code-Audit-2026-02-24.md`
 
 ## Suggested next step (from roadmap)
-Proceed to Milestone 5: Head-to-Head stats endpoint derived from LOCKED fixtures only.
+Proceed to Milestone 8 (Phase 2): TV mode overlay + pub display.
 
 Suggested prompt:
-"Implement Milestone 5 head-to-head stats endpoint `/orgs/:orgId/stats/head-to-head?playerA=...&playerB=...` using LOCKED fixtures only, add full E2E coverage, no unrelated refactors, and update docs/session note."
+"Implement Milestone 8 TV mode overlay minimal slice (read-only live match/fixture/standings view with sponsor slot rendering), add API/web tests for the touched flow, and update session docs with no unrelated refactors."

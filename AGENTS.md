@@ -65,8 +65,9 @@ No PR/commit is considered done unless:
 - Admin-first product; player stats are secondary.
 
 ## 10) Task execution order
-Follow `/docs/09-Implementation-Plan-and-Roadmap.md`.
-Current focus: Milestone 1 (Auth + Organisations + Roles), then Milestone 2 (Fixtures + Calendar).
+Follow `/PubLeague_Program_Schedule_Roadmap_v1.md` as the canonical roadmap.
+Use `/CHATGPT_NEXT_STEP_NOTE.md` as the current status + next-action companion.
+Current focus: pivot progression after Milestone 7 completion, with Milestone 8 next.
 
 ## 11) Definition of done (global)
 - Feature works end-to-end locally via docker compose

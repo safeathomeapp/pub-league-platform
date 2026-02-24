@@ -6,6 +6,18 @@ This document is the authoritative roadmap for the pivot. It defines the sequenc
 
 ---
 
+## Current status checkpoint (as of 2026-02-24)
+- Canonical companion status doc: `/CHATGPT_NEXT_STEP_NOTE.md`.
+- Completed through Milestone 7 based on latest session docs:
+  - `docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
+  - `docs/Sessions/2026-02-17_21-06-21-m6-sponsor-slots-minimal.md`
+  - `docs/Sessions/2026-02-17_22-54-23-m6-web-sponsors-admin-ui.md`
+  - `docs/Sessions/2026-02-17_23-12-24-web-match-night-signoff-ux.md`
+  - `docs/Sessions/2026-02-24_11-00-00-m7-effective-date-transfer-history.md`
+- Active next milestone: Milestone 8 (Phase 2 TV mode overlay + pub display).
+
+---
+
 ## Blunt answer: plan everything now vs iterate?
 Plan the **foundation once**, but keep the **product scope as a controlled living document**.
 
@@ -210,6 +222,6 @@ Codex must:
 ---
 
 ## 8) Immediate next actions (today)
-1. Clean `.next` churn and update `.gitignore` (Milestone 0).  
-2. Implement missing FKs + enums + constraints (Milestone 1).  
-3. Only then begin the sign-off workflow (Milestone 2).  
+1. Define Milestone 8 minimal overlay contract (view model + sponsor slot placement rules).  
+2. Implement read-only TV overlay slice with deterministic refresh/update behavior.  
+3. Add focused tests and update session docs.  

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { OrgMembershipGuard } from '../../common/guards/org-membership.guard';
@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AddTeamPlayerDto } from './dto/add-team-player.dto';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { CreateTeamDto } from './dto/create-team.dto';
+import { ListRosterTransfersQueryDto } from './dto/list-roster-transfers-query.dto';
 import { TransferSeasonPlayerDto } from './dto/transfer-season-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
@@ -76,6 +77,25 @@ export class TeamsPlayersController {
     @Req() req: Request,
     @Body() dto: TransferSeasonPlayerDto,
   ) {
-    return this.teamsPlayers.transferSeasonPlayer(orgId, seasonId, playerId, dto.toTeamId, user.id, req.ctx?.role, dto.reason);
+    return this.teamsPlayers.transferSeasonPlayer(
+      orgId,
+      seasonId,
+      playerId,
+      dto.toTeamId,
+      dto.effectiveFrom,
+      user.id,
+      req.ctx?.role,
+      dto.reason,
+    );
+  }
+
+  @Get('seasons/:seasonId/transfers')
+  @Roles('ORG_ADMIN', 'COMMISSIONER')
+  listSeasonTransfers(
+    @Param('orgId') orgId: string,
+    @Param('seasonId') seasonId: string,
+    @Query() query: ListRosterTransfersQueryDto,
+  ) {
+    return this.teamsPlayers.listSeasonTransfers(orgId, seasonId, query);
   }
 }

@@ -310,6 +310,8 @@ model RosterTransferAudit {
   playerId       String
   fromTeamId     String
   toTeamId       String
+  effectiveFrom  DateTime @default(now())
+  appliedAt      DateTime?
   actorUserId    String
   reason         String
   wasAdminOverride Boolean @default(false)
@@ -323,6 +325,7 @@ model RosterTransferAudit {
   actorUser    User         @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@index([organisationId, seasonId, playerId, createdAt])
+  @@index([organisationId, seasonId, effectiveFrom, appliedAt])
 }
 
 model SponsorSlot {

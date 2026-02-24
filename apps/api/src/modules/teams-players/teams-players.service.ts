@@ -12,7 +12,17 @@ export class TeamsPlayersService {
   }
 
   async listTeams(orgId: string, divisionId: string) {
-    await this.assertDivisionInOrg(orgId, divisionId);
+    const division = await this.prisma.division.findFirst({
+      where: {
+        id: divisionId,
+        season: { league: { organisationId: orgId } },
+      },
+      select: { id: true, seasonId: true },
+    });
+    if (!division) throw new NotFoundException('Division not found');
+
+    await this.applyDueTransfersForSeason(orgId, division.seasonId);
+
     return this.prisma.team.findMany({
       where: { divisionId },
       include: { roster: { include: { player: true }, orderBy: { joinedAt: 'asc' } } },
@@ -77,6 +87,7 @@ export class TeamsPlayersService {
       select: { id: true, division: { select: { seasonId: true } } },
     });
     if (!team) throw new NotFoundException('Team not found');
+    await this.applyDueTransfersForSeason(orgId, team.division.seasonId);
 
     const player = await this.prisma.player.findFirst({
       where: { id: playerId, organisationId: orgId },
@@ -103,6 +114,7 @@ export class TeamsPlayersService {
       select: { id: true, division: { select: { seasonId: true } } },
     });
     if (!team) throw new NotFoundException('Team not found');
+    await this.applyDueTransfersForSeason(orgId, team.division.seasonId);
 
     const player = await this.prisma.player.findFirst({
       where: { id: playerId, organisationId: orgId },
@@ -141,10 +153,17 @@ export class TeamsPlayersService {
     seasonId: string,
     playerId: string,
     toTeamId: string,
+    effectiveFromInput: string,
     actorUserId: string,
     actorRole: string | undefined,
     reason: string,
   ) {
+    await this.applyDueTransfersForSeason(orgId, seasonId);
+    const effectiveFrom = new Date(effectiveFromInput);
+    if (Number.isNaN(effectiveFrom.getTime())) {
+      throw new BadRequestException('Invalid effectiveFrom');
+    }
+
     const currentRoster = await this.prisma.teamPlayer.findFirst({
       where: {
         seasonId,
@@ -167,30 +186,77 @@ export class TeamsPlayersService {
       reason,
     });
 
-    const updated = await this.prisma.$transaction(async tx => {
-      const roster = await tx.teamPlayer.update({
-        where: { id: currentRoster.id },
-        data: { teamId: toTeamId },
-        include: { player: true, team: true },
-      });
+    const now = new Date();
+    const applyNow = effectiveFrom <= now;
 
-      await tx.rosterTransferAudit.create({
+    const updated = await this.prisma.$transaction(async tx => {
+      const audit = await tx.rosterTransferAudit.create({
         data: {
           organisationId: orgId,
           seasonId,
           playerId,
           fromTeamId: currentRoster.teamId,
           toTeamId,
+          effectiveFrom,
+          appliedAt: applyNow ? now : null,
           actorUserId,
           reason,
           wasAdminOverride: decision.wasAdminOverride,
         },
       });
 
-      return roster;
+      if (!applyNow) {
+        return {
+          pending: true,
+          transferId: audit.id,
+          seasonId,
+          playerId,
+          fromTeamId: currentRoster.teamId,
+          toTeamId,
+          effectiveFrom: audit.effectiveFrom,
+        };
+      }
+
+      return tx.teamPlayer.update({
+        where: { id: currentRoster.id },
+        data: { teamId: toTeamId },
+        include: { player: true, team: true },
+      });
     });
 
     return updated;
+  }
+
+  async listSeasonTransfers(
+    orgId: string,
+    seasonId: string,
+    query: { playerId?: string; teamId?: string; from?: string; to?: string },
+  ) {
+    await this.assertSeasonInOrg(orgId, seasonId);
+    await this.applyDueTransfersForSeason(orgId, seasonId);
+
+    const from = query.from ? new Date(query.from) : undefined;
+    const to = query.to ? new Date(query.to) : undefined;
+    if (from && Number.isNaN(from.getTime())) throw new BadRequestException('Invalid from');
+    if (to && Number.isNaN(to.getTime())) throw new BadRequestException('Invalid to');
+
+    return this.prisma.rosterTransferAudit.findMany({
+      where: {
+        organisationId: orgId,
+        seasonId,
+        ...(query.playerId ? { playerId: query.playerId } : {}),
+        ...(query.teamId ? { OR: [{ fromTeamId: query.teamId }, { toTeamId: query.teamId }] } : {}),
+        ...(from || to
+          ? {
+              effectiveFrom: {
+                ...(from ? { gte: from } : {}),
+                ...(to ? { lte: to } : {}),
+              },
+            }
+          : {}),
+      },
+      orderBy: [{ effectiveFrom: 'asc' }, { createdAt: 'asc' }],
+    });
   }
 
   async canMovePlayer(input: {
@@ -276,6 +342,61 @@ export class TeamsPlayersService {
       select: { id: true },
     });
     if (!team) throw new NotFoundException('Team not found');
+  }
+
+  private async assertSeasonInOrg(orgId: string, seasonId: string): Promise<void> {
+    const season = await this.prisma.season.findFirst({
+      where: {
+        id: seasonId,
+        league: { organisationId: orgId },
+      },
+      select: { id: true },
+    });
+    if (!season) throw new NotFoundException('Season not found');
+  }
+
+  private async applyDueTransfersForSeason(orgId: string, seasonId: string): Promise<void> {
+    const now = new Date();
+    const dueTransfers = await this.prisma.rosterTransferAudit.findMany({
+      where: {
+        organisationId: orgId,
+        seasonId,
+        appliedAt: null,
+        effectiveFrom: { lte: now },
+      },
+      orderBy: [{ effectiveFrom: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        playerId: true,
+        fromTeamId: true,
+        toTeamId: true,
+      },
+    });
+
+    for (const transfer of dueTransfers) {
+      await this.prisma.$transaction(async tx => {
+        const roster = await tx.teamPlayer.findFirst({
+          where: {
+            seasonId,
+            playerId: transfer.playerId,
+            team: { division: { season: { league: { organisationId: orgId } } } },
+          },
+          select: { id: true, teamId: true },
+        });
+
+        if (roster && roster.teamId === transfer.fromTeamId) {
+          await tx.teamPlayer.update({
+            where: { id: roster.id },
+            data: { teamId: transfer.toTeamId },
+          });
+        }
+
+        await tx.rosterTransferAudit.update({
+          where: { id: transfer.id },
+          data: { appliedAt: now },
+        });
+      });
+    }
   }
 
   private async countLockedAppearances(seasonId: string, teamId: string): Promise<number> {
