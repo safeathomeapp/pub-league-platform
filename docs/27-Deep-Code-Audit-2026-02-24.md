@@ -33,10 +33,10 @@ Scope: repo-wide deep audit for current implementation status, quality gates, te
 
 ## 4) Findings (Ranked)
 ### Medium
-1. Fixture lifecycle has dual fields (`status` and `state`) that can drift.
-- Risk: inconsistent downstream behavior if only one field is updated.
-- Evidence: fixtures patch endpoint supports `status` updates while sign-off flow governs `state`.
-- Suggested action: define single authority field for governance decisions and limit mutable fields exposed by fixtures patch.
+1. Fixture lifecycle has dual fields (`status` and `state`) and required hardening.
+- Status: partially mitigated.
+- Implemented mitigation: fixtures patch now blocks direct `completed` status patch and synchronizes `state` when `status` patch is allowed.
+- Residual: model still contains both fields and should be consolidated in a future migration.
 
 2. Transfer application is lazy (request-triggered), not scheduler-driven.
 - Risk: future-dated transfers may remain unapplied until specific teams/players endpoints are called.

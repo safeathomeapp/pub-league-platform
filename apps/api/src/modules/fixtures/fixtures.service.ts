@@ -1,5 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { FixtureStatus } from '@prisma/client';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { FixtureState, FixtureStatus } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 import { GenerateRoundRobinResponseDto } from './dto/generate-round-robin-response.dto';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -112,13 +112,14 @@ export class FixturesService {
     data: { scheduledAt?: string; status?: FixtureStatus },
   ) {
     const existing = await this.getById(orgId, fixtureId);
+    const statusPatch = this.resolveStatusPatch(existing.state, data.status);
 
     // Restrict patch behavior to explicit fields to avoid accidental model drift.
     const updated = await this.prisma.fixture.update({
       where: { id: fixtureId },
       data: {
         ...(data.scheduledAt !== undefined ? { scheduledAt: new Date(data.scheduledAt) } : {}),
-        ...(data.status !== undefined ? { status: data.status } : {}),
+        ...(statusPatch ?? {}),
       },
       include: {
         homeTeam: true,
@@ -149,5 +150,29 @@ export class FixturesService {
 
   private pairKey(teamAId: string, teamBId: string): string {
     return teamAId < teamBId ? `${teamAId}:${teamBId}` : `${teamBId}:${teamAId}`;
+  }
+
+  private resolveStatusPatch(
+    currentState: FixtureState,
+    nextStatus?: FixtureStatus,
+  ): { status: FixtureStatus; state: FixtureState } | undefined {
+    if (nextStatus === undefined) return undefined;
+
+    if (nextStatus === FixtureStatus.completed) {
+      throw new ConflictException('Use governed match result flows to lock/complete fixtures');
+    }
+
+    if (
+      currentState === FixtureState.AWAITING_OPPONENT
+      || currentState === FixtureState.DISPUTED
+      || currentState === FixtureState.LOCKED
+    ) {
+      throw new ConflictException('Fixture status cannot be patched from governed states');
+    }
+
+    if (nextStatus === FixtureStatus.scheduled) {
+      return { status: FixtureStatus.scheduled, state: FixtureState.SCHEDULED };
+    }
+    return { status: FixtureStatus.in_progress, state: FixtureState.IN_PROGRESS };
   }
 }

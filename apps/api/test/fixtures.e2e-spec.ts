@@ -121,7 +121,14 @@ describe('fixtures (e2e)', () => {
       })
       .expect(200);
     expect(patched.body.status).toBe('in_progress');
+    expect(patched.body.state).toBe('IN_PROGRESS');
     expect(patched.body.scheduledAt).toBe('2026-04-15T19:30:00.000Z');
+
+    await api(app)
+      .patch(`/api/v1/orgs/${orgId}/fixtures/${targetFixtureId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'completed' })
+      .expect(409);
 
     const filteredByStatus = await api(app)
       .get(`/api/v1/orgs/${orgId}/divisions/${division.id}/fixtures?status=in_progress`)
