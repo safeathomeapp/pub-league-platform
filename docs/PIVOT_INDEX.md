@@ -22,6 +22,7 @@ Based on the latest session notes, implementation is complete through Milestone 
 - `/docs/Sessions/2026-02-24_10-00-00-m7-gap-audit-transfer-roster.md`
 - `/docs/Sessions/2026-02-24_11-00-00-m7-effective-date-transfer-history.md`
 - `/docs/Sessions/2026-02-24_12-00-00-m8-tv-overlay-thin-slice.md`
+- `/docs/Sessions/2026-02-24_12-45-00-m8-overlay-hardening-and-tests.md`
 
 ## Superseded session docs
 Older session notes were archived to:

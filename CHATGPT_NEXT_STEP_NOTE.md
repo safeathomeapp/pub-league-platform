@@ -20,6 +20,9 @@ Use this file for latest completion status and immediate next implementation act
   - TV overlay endpoint (`/orgs/:orgId/tv/overlay`)
   - read-only `/tv-overlay` web page with polling
   - sponsor scope filtering in overlay payload
+- Milestone 8 hardening pass completed:
+  - improved overlay readability layout
+  - expanded overlay API test coverage for team filtering and mismatch validation
 
 ## Current source session docs (active truth set)
 - `docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
@@ -29,6 +32,7 @@ Use this file for latest completion status and immediate next implementation act
 - `docs/Sessions/2026-02-24_10-00-00-m7-gap-audit-transfer-roster.md`
 - `docs/Sessions/2026-02-24_11-00-00-m7-effective-date-transfer-history.md`
 - `docs/Sessions/2026-02-24_12-00-00-m8-tv-overlay-thin-slice.md`
+- `docs/Sessions/2026-02-24_12-45-00-m8-overlay-hardening-and-tests.md`
 
 ## Archive note
 - Older session notes were moved to `docs/archive/sessions-superseded/`.

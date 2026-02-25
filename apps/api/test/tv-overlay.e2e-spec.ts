@@ -183,4 +183,76 @@ describe('tv overlay (e2e)', () => {
       .set('Authorization', `Bearer ${outsiderToken}`)
       .expect(403);
   });
+
+  it('supports team filtering and validates team/division membership', async () => {
+    const ownerEmail = `tv_filter_owner_${Date.now()}@example.com`;
+    const password = 'password1234';
+
+    const ownerReg = await api(app).post('/api/v1/auth/register').send({ email: ownerEmail, password }).expect(201);
+    const ownerToken = ownerReg.body.accessToken as string;
+
+    const org = await api(app)
+      .post('/api/v1/orgs')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'TV Filter Org' })
+      .expect(201);
+    const orgId = org.body.id as string;
+
+    const ruleset = await prisma.ruleset.create({
+      data: {
+        organisationId: orgId,
+        name: 'TV Filter Ruleset',
+        sport: 'pool',
+        config: { points_model: { win: 2, draw: 0, loss: 0 } },
+      },
+    });
+    const league = await prisma.league.create({
+      data: {
+        organisationId: orgId,
+        name: 'TV Filter League',
+        sport: 'pool',
+        rulesetId: ruleset.id,
+      },
+    });
+    const season = await prisma.season.create({
+      data: {
+        leagueId: league.id,
+        name: 'TV Filter Season',
+        startDate: new Date('2026-01-01T00:00:00.000Z'),
+        endDate: new Date('2026-12-31T00:00:00.000Z'),
+      },
+    });
+    const division = await prisma.division.create({ data: { seasonId: season.id, name: 'Filter Division' } });
+    const otherDivision = await prisma.division.create({ data: { seasonId: season.id, name: 'Other Division Filter' } });
+
+    const teamA = await prisma.team.create({ data: { divisionId: division.id, name: 'Team A Filter' } });
+    const teamB = await prisma.team.create({ data: { divisionId: division.id, name: 'Team B Filter' } });
+    const otherTeam = await prisma.team.create({ data: { divisionId: otherDivision.id, name: 'Other Team Filter' } });
+
+    await prisma.fixture.create({
+      data: {
+        divisionId: division.id,
+        homeTeamId: teamA.id,
+        awayTeamId: teamB.id,
+        scheduledAt: new Date('2026-09-01T19:00:00.000Z'),
+        state: FixtureState.SCHEDULED,
+        status: FixtureStatus.scheduled,
+      },
+    });
+
+    const filtered = await api(app)
+      .get(`/api/v1/orgs/${orgId}/tv/overlay?divisionId=${division.id}&teamId=${teamA.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+
+    expect(filtered.body.fixtures.next.length).toBeGreaterThanOrEqual(1);
+    for (const item of filtered.body.fixtures.next as Array<{ homeTeam: { id: string }; awayTeam: { id: string } }>) {
+      expect(item.homeTeam.id === teamA.id || item.awayTeam.id === teamA.id).toBe(true);
+    }
+
+    await api(app)
+      .get(`/api/v1/orgs/${orgId}/tv/overlay?divisionId=${division.id}&teamId=${otherTeam.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(404);
+  });
 });
