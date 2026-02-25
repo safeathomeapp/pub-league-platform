@@ -4,7 +4,7 @@ Scope: repo-wide deep audit for current implementation status, quality gates, te
 
 ## 1) Quality Gate Results
 - API typecheck: pass
-- API e2e: pass (`18/18` suites, `24/24` tests)
+- API e2e: pass (`20/20` suites, `27/27` tests)
 - Web typecheck: pass
 - Web build: pass
 
@@ -17,7 +17,7 @@ Scope: repo-wide deep audit for current implementation status, quality gates, te
 - Milestone 5: complete
 - Milestone 6: complete
 - Milestone 7: complete
-- Milestone 8: not started (next)
+- Milestone 8: in progress (thin slice + hardening in place)
 - Milestone 9: not started
 
 ## 3) What We Have Now
@@ -28,15 +28,20 @@ Scope: repo-wide deep audit for current implementation status, quality gates, te
 - Transfer and roster hardening now includes:
   - effective-dated transfers
   - pending transfer application tracking
+  - scheduler-driven transfer reconciliation worker path
   - transfer history endpoint
   - e2e coverage for future-dated behavior and org isolation
+- TV overlay capability now includes:
+  - overlay API endpoint
+  - overlay web page
+  - overlay filtering/resilience test coverage
 
 ## 4) Findings (Ranked)
 ### Medium
 1. Fixture lifecycle has dual fields (`status` and `state`) and required hardening.
-- Status: partially mitigated.
-- Implemented mitigation: fixtures patch now blocks direct `completed` status patch and synchronizes `state` when `status` patch is allowed.
-- Residual: model still contains both fields and should be consolidated in a future migration.
+- Status: mitigated with residual model debt.
+- Implemented mitigation: fixtures patch blocks direct `completed` patch and synchronizes `state` on allowed status changes.
+- Residual: both fields still exist; eventual consolidation migration is still recommended.
 
 2. Transfer application is lazy (request-triggered), not scheduler-driven.
 - Status: mitigated.
@@ -63,6 +68,6 @@ Scope: repo-wide deep audit for current implementation status, quality gates, te
 - Current tests include org isolation coverage for key modules (including latest transfer history path).
 
 ## 6) Recommended Next Actions
-1. Begin Milestone 8 with a narrow overlay MVP contract.
-2. Before building UI depth, close Medium finding #1 (fixture `status`/`state` authority rule) to avoid behavior drift.
-3. Keep docs synced through `PIVOT_INDEX` and session notes only; treat older roadmap docs as historical references.
+1. Decide Milestone 8 closeout criteria and mark complete when accepted.
+2. Run a docs convergence pass: pivot-era API semantics as default, legacy docs explicitly historical.
+3. Address low-priority hygiene (`apps/api/package.json` duplicate `@prisma/client`, optional web smoke tests).

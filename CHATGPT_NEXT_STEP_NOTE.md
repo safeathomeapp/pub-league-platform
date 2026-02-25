@@ -36,19 +36,24 @@ Use this file for latest completion status and immediate next implementation act
 - `docs/Sessions/2026-02-17_22-54-23-m6-web-sponsors-admin-ui.md`
 - `docs/Sessions/2026-02-17_23-12-24-web-match-night-signoff-ux.md`
 - `docs/Sessions/2026-02-24_10-00-00-m7-gap-audit-transfer-roster.md`
+- `docs/Sessions/2026-02-24_11-15-00-m8-contract-established.md`
 - `docs/Sessions/2026-02-24_11-00-00-m7-effective-date-transfer-history.md`
+- `docs/Sessions/2026-02-24_11-30-00-fixture-lifecycle-authority-hardening.md`
 - `docs/Sessions/2026-02-24_12-00-00-m8-tv-overlay-thin-slice.md`
 - `docs/Sessions/2026-02-24_12-45-00-m8-overlay-hardening-and-tests.md`
 - `docs/Sessions/2026-02-24_13-30-00-transfer-worker-reconciliation.md`
 - `docs/Sessions/2026-02-24_14-20-00-team-roster-role-enum-cleanup.md`
+- `docs/Sessions/2026-02-24_15-00-00-next-session-handoff.md`
 
 ## Archive note
 - Older session notes were moved to `docs/archive/sessions-superseded/`.
 - Deep audit report: `docs/27-Deep-Code-Audit-2026-02-24.md`
+- Next session checklist: `docs/Sessions/2026-02-24_15-00-00-next-session-handoff.md`
 
 ## Suggested next step (from roadmap)
-Proceed with Milestone 8 hardening/polish: overlay UX quality, display resilience, and remaining audit follow-ups.
-- Milestone 8 contract: `docs/28-M8-TV-Overlay-Contract.md`
+Proceed with Milestone 8 closeout and docs convergence.
+- Validate acceptance against: `docs/28-M8-TV-Overlay-Contract.md`
+- Execute ordered task list in: `docs/Sessions/2026-02-24_15-00-00-next-session-handoff.md`
 
 Suggested prompt:
-"Harden Milestone 8 overlay: improve TV readability/layout, add targeted resilience behavior tests, and close remaining medium-priority audit items with no unrelated refactors."
+"Run the next-session handoff checklist, finalize Milestone 8 acceptance status, and update canonical docs without unrelated refactors."

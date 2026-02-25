@@ -25,6 +25,9 @@ Based on the latest session notes, implementation is complete through Milestone 
 - `/docs/Sessions/2026-02-24_12-45-00-m8-overlay-hardening-and-tests.md`
 - `/docs/Sessions/2026-02-24_13-30-00-transfer-worker-reconciliation.md`
 - `/docs/Sessions/2026-02-24_14-20-00-team-roster-role-enum-cleanup.md`
+- `/docs/Sessions/2026-02-24_11-15-00-m8-contract-established.md`
+- `/docs/Sessions/2026-02-24_11-30-00-fixture-lifecycle-authority-hardening.md`
+- `/docs/Sessions/2026-02-24_15-00-00-next-session-handoff.md`
 
 ## Superseded session docs
 Older session notes were archived to:
