@@ -26,6 +26,9 @@ Use this file for latest completion status and immediate next implementation act
 - Transfer reconciliation hardening completed:
   - scheduler-driven due-transfer worker path
   - worker e2e coverage for non-read-triggered transfer application
+- Roster role domain cleanup completed:
+  - `TeamPlayer.role` now uses dedicated DB enum (`TeamRosterRole`)
+  - migration + validation coverage retained
 
 ## Current source session docs (active truth set)
 - `docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
@@ -37,6 +40,7 @@ Use this file for latest completion status and immediate next implementation act
 - `docs/Sessions/2026-02-24_12-00-00-m8-tv-overlay-thin-slice.md`
 - `docs/Sessions/2026-02-24_12-45-00-m8-overlay-hardening-and-tests.md`
 - `docs/Sessions/2026-02-24_13-30-00-transfer-worker-reconciliation.md`
+- `docs/Sessions/2026-02-24_14-20-00-team-roster-role-enum-cleanup.md`
 
 ## Archive note
 - Older session notes were moved to `docs/archive/sessions-superseded/`.

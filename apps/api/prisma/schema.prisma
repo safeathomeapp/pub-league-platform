@@ -76,6 +76,11 @@ enum SponsorScopeType {
   DIVISION
 }
 
+enum TeamRosterRole {
+  CAPTAIN
+  PLAYER
+}
+
 model Organisation {
   id        String   @id @default(uuid())
   name      String
@@ -201,7 +206,7 @@ model TeamPlayer {
   teamId   String
   seasonId String
   playerId String
-  role     Role // CAPTAIN or PLAYER (reuse enum; keep simple)
+  role     TeamRosterRole
   joinedAt DateTime @default(now())
 
   team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)

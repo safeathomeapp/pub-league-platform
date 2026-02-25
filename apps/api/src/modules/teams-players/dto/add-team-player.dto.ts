@@ -5,5 +5,5 @@ export class AddTeamPlayerDto {
   playerId!: string;
 
   @IsIn(['CAPTAIN', 'PLAYER'])
-  role!: string;
+  role!: 'CAPTAIN' | 'PLAYER';
 }

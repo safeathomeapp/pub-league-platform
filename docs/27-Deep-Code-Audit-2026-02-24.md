@@ -43,8 +43,8 @@ Scope: repo-wide deep audit for current implementation status, quality gates, te
 - Implemented: scheduler-driven reconcile worker path plus reconciliation e2e coverage.
 
 3. Team roster role uses global `Role` enum.
-- Risk: domain mismatch allows non-roster values conceptually (`ORG_ADMIN`, `COMMISSIONER`) in `TeamPlayer.role`.
-- Suggested action: introduce dedicated roster role enum (`CAPTAIN`, `PLAYER`) in a small migration.
+- Status: resolved.
+- Implemented: dedicated `TeamRosterRole` enum for `TeamPlayer.role` with migration and validation retained at API boundary.
 
 4. Legacy docs still contain pre-pivot API semantics.
 - Risk: contributor confusion on endpoint contract (`complete` vs submit/approve/reject flow).

@@ -78,7 +78,7 @@ export class TeamsPlayersService {
     });
   }
 
-  async addTeamPlayer(orgId: string, teamId: string, playerId: string, role: string) {
+  async addTeamPlayer(orgId: string, teamId: string, playerId: string, role: 'CAPTAIN' | 'PLAYER') {
     const team = await this.prisma.team.findFirst({
       where: {
         id: teamId,
@@ -97,7 +97,7 @@ export class TeamsPlayersService {
 
     try {
       return await this.prisma.teamPlayer.create({
-        data: { teamId, seasonId: team.division.seasonId, playerId, role: role as any },
+        data: { teamId, seasonId: team.division.seasonId, playerId, role },
         include: { player: true, team: true },
       });
     } catch {
