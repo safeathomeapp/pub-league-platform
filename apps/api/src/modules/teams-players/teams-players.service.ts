@@ -21,7 +21,7 @@ export class TeamsPlayersService {
     });
     if (!division) throw new NotFoundException('Division not found');
 
-    await this.applyDueTransfersForSeason(orgId, division.seasonId);
+    await this.reconcileDueTransfers({ orgId, seasonId: division.seasonId });
 
     return this.prisma.team.findMany({
       where: { divisionId },
@@ -87,7 +87,7 @@ export class TeamsPlayersService {
       select: { id: true, division: { select: { seasonId: true } } },
     });
     if (!team) throw new NotFoundException('Team not found');
-    await this.applyDueTransfersForSeason(orgId, team.division.seasonId);
+    await this.reconcileDueTransfers({ orgId, seasonId: team.division.seasonId });
 
     const player = await this.prisma.player.findFirst({
       where: { id: playerId, organisationId: orgId },
@@ -114,7 +114,7 @@ export class TeamsPlayersService {
       select: { id: true, division: { select: { seasonId: true } } },
     });
     if (!team) throw new NotFoundException('Team not found');
-    await this.applyDueTransfersForSeason(orgId, team.division.seasonId);
+    await this.reconcileDueTransfers({ orgId, seasonId: team.division.seasonId });
 
     const player = await this.prisma.player.findFirst({
       where: { id: playerId, organisationId: orgId },
@@ -158,7 +158,7 @@ export class TeamsPlayersService {
     actorRole: string | undefined,
     reason: string,
   ) {
-    await this.applyDueTransfersForSeason(orgId, seasonId);
+    await this.reconcileDueTransfers({ orgId, seasonId });
     const effectiveFrom = new Date(effectiveFromInput);
     if (Number.isNaN(effectiveFrom.getTime())) {
       throw new BadRequestException('Invalid effectiveFrom');
@@ -233,7 +233,7 @@ export class TeamsPlayersService {
     query: { playerId?: string; teamId?: string; from?: string; to?: string },
   ) {
     await this.assertSeasonInOrg(orgId, seasonId);
-    await this.applyDueTransfersForSeason(orgId, seasonId);
+    await this.reconcileDueTransfers({ orgId, seasonId });
 
     const from = query.from ? new Date(query.from) : undefined;
     const to = query.to ? new Date(query.to) : undefined;
@@ -355,7 +355,32 @@ export class TeamsPlayersService {
     if (!season) throw new NotFoundException('Season not found');
   }
 
-  private async applyDueTransfersForSeason(orgId: string, seasonId: string): Promise<void> {
+  async reconcileDueTransfers(filter?: { orgId?: string; seasonId?: string }): Promise<{ appliedCount: number }> {
+    const now = new Date();
+    const dueTransfers = await this.prisma.rosterTransferAudit.findMany({
+      where: {
+        ...(filter?.orgId ? { organisationId: filter.orgId } : {}),
+        ...(filter?.seasonId ? { seasonId: filter.seasonId } : {}),
+        appliedAt: null,
+        effectiveFrom: { lte: now },
+      },
+      orderBy: [{ effectiveFrom: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        organisationId: true,
+        seasonId: true,
+      },
+    });
+
+    const seasonKeys = Array.from(new Set(dueTransfers.map(item => `${item.organisationId}:${item.seasonId}`)));
+    let appliedCount = 0;
+    for (const key of seasonKeys) {
+      const [orgId, seasonId] = key.split(':');
+      appliedCount += await this.applyDueTransfersForSeason(orgId, seasonId);
+    }
+    return { appliedCount };
+  }
+
+  private async applyDueTransfersForSeason(orgId: string, seasonId: string): Promise<number> {
     const now = new Date();
     const dueTransfers = await this.prisma.rosterTransferAudit.findMany({
       where: {
@@ -373,8 +398,18 @@ export class TeamsPlayersService {
       },
     });
 
+    let applied = 0;
     for (const transfer of dueTransfers) {
       await this.prisma.$transaction(async tx => {
+        const claimed = await tx.rosterTransferAudit.updateMany({
+          where: {
+            id: transfer.id,
+            appliedAt: null,
+          },
+          data: { appliedAt: now },
+        });
+        if (claimed.count === 0) return;
+
         const roster = await tx.teamPlayer.findFirst({
           where: {
             seasonId,
@@ -390,13 +425,10 @@ export class TeamsPlayersService {
             data: { teamId: transfer.toTeamId },
           });
         }
-
-        await tx.rosterTransferAudit.update({
-          where: { id: transfer.id },
-          data: { appliedAt: now },
-        });
+        applied += 1;
       });
     }
+    return applied;
   }
 
   private async countLockedAppearances(seasonId: string, teamId: string): Promise<number> {

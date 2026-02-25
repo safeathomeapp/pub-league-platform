@@ -39,8 +39,8 @@ Scope: repo-wide deep audit for current implementation status, quality gates, te
 - Residual: model still contains both fields and should be consolidated in a future migration.
 
 2. Transfer application is lazy (request-triggered), not scheduler-driven.
-- Risk: future-dated transfers may remain unapplied until specific teams/players endpoints are called.
-- Suggested action: add scheduled worker or startup reconciliation pass for due transfers.
+- Status: mitigated.
+- Implemented: scheduler-driven reconcile worker path plus reconciliation e2e coverage.
 
 3. Team roster role uses global `Role` enum.
 - Risk: domain mismatch allows non-roster values conceptually (`ORG_ADMIN`, `COMMISSIONER`) in `TeamPlayer.role`.
