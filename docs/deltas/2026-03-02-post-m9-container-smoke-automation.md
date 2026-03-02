@@ -19,6 +19,8 @@ This delta keeps the newly validated runtime path durable before any future prod
   - `docker compose up --build -d`
   - API/web health checks
   - `docker compose down`
+- `apps/api/src/modules/migration-jobs/migration-jobs.service.ts`
+- `docker-compose.yml`
 - `README.md`
 - `docs/deltas/2026-03-02-post-m9-runtime-hardening-and-app-containers.md`
 - a short session note documenting the automation closeout
@@ -47,11 +49,17 @@ Completed on 2026-03-02 with:
 - scripted web root verification
 - scripted `docker compose ps`
 - scripted `docker compose down`
+- configurable API upload root plus Docker-backed upload volume
+- focused persistence verification:
+  - wrote a sentinel file under `/data/uploads`
+  - restarted the API container
+  - read the same file back successfully after restart
 - script-level Docker Desktop reliability handling:
   - resolves Docker CLI from PATH or standard Docker Desktop install path
   - prepends Docker Desktop bin path so credential helpers resolve
   - starts from `docker compose down --remove-orphans`
   - forces classic builder mode for this smoke path because BuildKit snapshot export proved flaky on this machine
 
-Residual runtime risk kept explicit:
-- migration-job upload assets are still stored on container-local filesystem and are not yet backed by persistent storage
+Residual runtime note:
+- Docker-backed persistence is now in place for local container runtime.
+- Broader long-term storage design, if needed later, should be introduced only through a new explicit delta.

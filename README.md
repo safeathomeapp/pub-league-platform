@@ -38,4 +38,4 @@ Copy env files:
   - verifies API health and web root response
   - prints `docker compose ps`
   - runs `docker compose down` when finished
-- Remaining runtime note: migration-job upload assets are currently written to container-local filesystem and are not yet backed by persistent storage.
+- Migration-job runtime note: containerized API uploads now persist via the `api_uploads` Docker volume mounted at `/data/uploads`.

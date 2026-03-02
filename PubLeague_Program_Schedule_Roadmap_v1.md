@@ -239,5 +239,5 @@ Codex must:
 
 ## 8) Immediate next actions (today)
 1. Treat the post-M9 runtime baseline as established: Docker validation and container smoke automation are complete.
-2. Before any feature proposal, account explicitly for the remaining runtime gap: migration-job upload assets are currently stored on container-local filesystem.
+2. Treat migration-job upload persistence as part of that runtime baseline: Docker-backed API uploads now survive container restart.
 3. Keep change control strict: the next step must begin with a new explicit delta document, not direct implementation.

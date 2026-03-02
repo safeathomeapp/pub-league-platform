@@ -54,11 +54,14 @@ Use this file for latest completion status and immediate next implementation act
 - Post-runtime follow-on delta documented:
   - `docs/deltas/2026-03-02-post-m9-container-smoke-automation.md`
   - purpose: turn manual container validation into a repeatable smoke path before any new scope
-  - residual operational risk recorded: migration-job upload assets are currently stored on container-local filesystem and are not yet backed by persistent storage
 - Post-runtime container smoke automation completed:
   - repo command: `npm run smoke:containers`
   - scripted compose up, health verification, compose status, and compose down
   - session note: `docs/Sessions/2026-03-02_22-05-00-container-smoke-automation.md`
+- Migration-job upload persistence hardened:
+  - API upload root is configurable via `UPLOADS_ROOT`
+  - Docker compose mounts named volume `api_uploads` at `/data/uploads`
+  - persistence verified by writing a sentinel file, restarting the API container, and reading the file back successfully
 
 ## Current source session docs (active truth set)
 - `docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
@@ -93,8 +96,8 @@ The defined roadmap is implemented through Milestone 9, the runtime baseline is 
   - web responds `200` at `http://localhost:3000`
 - Current locked constraint before any feature proposal:
   - keep change control strict and document the next delta explicitly
-- Known residual runtime risk:
-  - migration-job upload assets are written to container-local storage today and will not survive API container recreation
+- Current runtime baseline additions:
+  - containerized migration-job uploads persist across API container restart via the `api_uploads` volume
 
 Suggested prompt:
-"Propose the next delta only after accounting for migration-job upload persistence and keeping the scope narrow."
+"Propose the next delta from the now-stable post-M9 runtime baseline, keeping the scope narrow and explicitly documented."

@@ -12,6 +12,8 @@
 - Added:
   - `scripts/container-smoke.ps1`
 - Updated:
+  - `apps/api/src/modules/migration-jobs/migration-jobs.service.ts`
+  - `docker-compose.yml`
   - `package.json`
   - `README.md`
   - `docs/deltas/2026-03-02-post-m9-container-smoke-automation.md`
@@ -28,10 +30,17 @@
   - prints `docker compose ps`
   - runs `docker compose down` unless `-KeepUp` is supplied directly to the script
   - forces classic builder mode for this smoke path because BuildKit snapshot export was intermittently failing on this machine
+- Containerized API uploads now use:
+  - `UPLOADS_ROOT=/data`
+  - named Docker volume `api_uploads` mounted at `/data/uploads`
 
 ## Verification
 - `npm run smoke:containers` passed on 2026-03-02
+- focused persistence verification passed on 2026-03-02:
+  - wrote sentinel file to `/data/uploads`
+  - restarted API container
+  - verified sentinel file remained present after restart
 
-## Residual risk
-- Migration-job upload assets are still written to container-local filesystem under the API app working directory.
-- That storage is not yet backed by a persistent volume or external storage adapter.
+## Residual note
+- Local Docker runtime now persists migration-job uploads across API container restart.
+- Any future move to external/object storage should be treated as separate scoped work, not implicit follow-on.

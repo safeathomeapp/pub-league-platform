@@ -51,7 +51,7 @@ export class MigrationJobsService {
     const assetId = randomUUID();
     const originalFilename = this.sanitizeFilename(file.originalname || 'upload.bin');
     const relativePath = path.join('uploads', 'migration-jobs', orgId, jobId, originalFilename);
-    const absolutePath = path.resolve(process.cwd(), relativePath);
+    const absolutePath = path.resolve(this.getUploadsRoot(), relativePath);
 
     await fs.mkdir(path.dirname(absolutePath), { recursive: true });
     await fs.writeFile(absolutePath, file.buffer);
@@ -379,6 +379,10 @@ export class MigrationJobsService {
   private sanitizeFilename(filename: string) {
     const cleaned = filename.replace(/[^A-Za-z0-9._-]/g, '_');
     return cleaned || 'upload.bin';
+  }
+
+  private getUploadsRoot() {
+    return process.env.UPLOADS_ROOT?.trim() || process.cwd();
   }
 
   private asArray(value: unknown): unknown[] {
