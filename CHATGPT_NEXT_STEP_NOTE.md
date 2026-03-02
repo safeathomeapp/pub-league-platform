@@ -1,11 +1,11 @@
 # Handoff Note For ChatGPT (Next Step)
-Updated: 2026-02-24
+Updated: 2026-03-02
 
 Companion to `/PubLeague_Program_Schedule_Roadmap_v1.md`.
 Use this file for latest completion status and immediate next implementation action.
 
 ## Current state (completed)
-- Completed through Milestone 7.
+- Completed through Milestone 9.
 - Milestone 5: head-to-head stats endpoint implemented and tested.
 - Milestone 6: sponsor slot API implemented and tested.
 - Web wiring completed for:
@@ -23,12 +23,34 @@ Use this file for latest completion status and immediate next implementation act
 - Milestone 8 hardening pass completed:
   - improved overlay readability layout
   - expanded overlay API test coverage for team filtering and mismatch validation
+- Milestone 8 acceptance validated on 2026-03-02 against `docs/28-M8-TV-Overlay-Contract.md`:
+  - API e2e pass (`20/20` suites, `27/27` tests)
+  - web typecheck pass
+  - web build pass
+  - contract requirements met for auth, org scoping, fixture partitioning, sponsor scope filtering, polling, and stale-data handling
 - Transfer reconciliation hardening completed:
   - scheduler-driven due-transfer worker path
   - worker e2e coverage for non-read-triggered transfer application
 - Roster role domain cleanup completed:
   - `TeamPlayer.role` now uses dedicated DB enum (`TeamRosterRole`)
   - migration + validation coverage retained
+- Milestone 9 thin slice implemented and validated:
+  - migration job API (`/orgs/:orgId/migration-jobs`)
+  - upload asset metadata + draft review flow
+  - explicit import-confirm endpoint with audit
+  - `/migration-assistant` web page
+  - web smoke coverage for upload/review/import UI shell
+- Post-M9 runtime-hardening slice implemented in code:
+  - app Dockerfiles for API and web
+  - `docker-compose.yml` expanded to `postgres`, `redis`, `api`, and `web`
+  - migration-first API container startup
+  - separate internal web server API base support for containerized SSR
+  - live Docker verification completed on 2026-03-02
+  - runtime fixes applied during validation:
+    - Prisma-compatible API image base and OpenSSL runtime support
+    - API builder native toolchain for resilient `bcrypt` install fallback
+    - API runtime `wget` for health checks
+    - repaired fresh-bootstrap transfer migration path
 
 ## Current source session docs (active truth set)
 - `docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
@@ -44,6 +66,10 @@ Use this file for latest completion status and immediate next implementation act
 - `docs/Sessions/2026-02-24_13-30-00-transfer-worker-reconciliation.md`
 - `docs/Sessions/2026-02-24_14-20-00-team-roster-role-enum-cleanup.md`
 - `docs/Sessions/2026-02-24_15-00-00-next-session-handoff.md`
+- `docs/Sessions/2026-03-02_19-38-46-docs-convergence-and-m9-contract.md`
+- `docs/Sessions/2026-03-02_19-52-38-m9-migration-assistant-thin-slice.md`
+- `docs/Sessions/2026-03-02_19-56-57-post-m9-delta-runtime-hardening.md`
+- `docs/Sessions/2026-03-02_20-05-00-runtime-hardening-app-containers-implementation.md`
 
 ## Archive note
 - Older session notes were moved to `docs/archive/sessions-superseded/`.
@@ -51,9 +77,14 @@ Use this file for latest completion status and immediate next implementation act
 - Next session checklist: `docs/Sessions/2026-02-24_15-00-00-next-session-handoff.md`
 
 ## Suggested next step (from roadmap)
-Proceed with Milestone 8 closeout and docs convergence.
-- Validate acceptance against: `docs/28-M8-TV-Overlay-Contract.md`
-- Execute ordered task list in: `docs/Sessions/2026-02-24_15-00-00-next-session-handoff.md`
+The defined roadmap is implemented through Milestone 9, and the post-M9 runtime-hardening delta has now been validated locally with Docker.
+- Current runtime status:
+  - `postgres`, `redis`, `api`, and `web` all start healthy via `docker compose`
+  - API health returns `{"ok":true}` at `/api/v1/health`
+  - web responds `200` at `http://localhost:3000`
+- Before any further scope, keep change control strict and decide whether the next work item is:
+  - formal commit/closeout of the Docker validation fixes
+  - a newly documented post-M9 delta
 
 Suggested prompt:
-"Run the next-session handoff checklist, finalize Milestone 8 acceptance status, and update canonical docs without unrelated refactors."
+"Review the validated Docker/runtime fixes, then prepare the next controlled delta or commit closeout."
