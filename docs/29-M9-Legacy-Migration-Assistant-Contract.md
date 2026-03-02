@@ -119,6 +119,12 @@ Behavior:
 Behavior:
 - returns job metadata, assets, current review status, and draft structured data
 
+### GET `/api/v1/orgs/:orgId/migration-jobs/:jobId/assets/:assetId`
+Behavior:
+- returns the uploaded asset for the selected org-scoped migration job
+- access is restricted to `ORG_ADMIN` or `COMMISSIONER` within the owning org
+- missing or wrong-org assets must not leak cross-tenant existence
+
 ### PATCH `/api/v1/orgs/:orgId/migration-jobs/:jobId/review`
 Behavior:
 - admin updates reviewed draft data
@@ -156,6 +162,7 @@ Minimum UI sections:
 Behavior:
 - read current jobs
 - upload a new source file
+- open an uploaded source asset for review
 - edit reviewed draft fields
 - display job status and failure state
 - import only after explicit confirmation
@@ -164,15 +171,18 @@ Behavior:
 API e2e minimum:
 1. org admin can create migration job with uploaded asset metadata
 2. non-member or wrong-org actor cannot read another org's jobs
-3. reviewed job can be moved to `READY_TO_IMPORT`
-4. import endpoint rejects non-ready jobs
-5. successful import writes audit row and marks job imported
-6. repeated import attempt returns conflict
+3. authorised org admin can fetch an uploaded asset for the job
+4. wrong-org or missing asset access is rejected correctly
+5. reviewed job can be moved to `READY_TO_IMPORT`
+6. import endpoint rejects non-ready jobs
+7. successful import writes audit row and marks job imported
+8. repeated import attempt returns conflict
 
 Web checks minimum:
 1. `apps/web` typecheck passes
 2. `apps/web` build passes
 3. review page handles upload/read/import errors without losing current job context
+4. review page exposes uploaded asset access when assets exist
 
 ## 9) Acceptance Criteria
 Milestone 9 minimal slice is done when:

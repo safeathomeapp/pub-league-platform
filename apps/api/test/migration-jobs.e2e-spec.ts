@@ -60,6 +60,7 @@ describe('migration jobs (e2e)', () => {
     expect(created.body.assets[0].originalFilename).toBe('scoreboard.png');
 
     const jobId = created.body.id as string;
+    const assetId = created.body.assets[0].id as string;
 
     const listed = await api(app)
       .get(`/api/v1/orgs/${orgAId}/migration-jobs?status=REVIEW_REQUIRED`)
@@ -71,6 +72,22 @@ describe('migration jobs (e2e)', () => {
       .get(`/api/v1/orgs/${orgAId}/migration-jobs/${jobId}`)
       .set('Authorization', `Bearer ${otherToken}`)
       .expect(403);
+
+    const assetResponse = await api(app)
+      .get(`/api/v1/orgs/${orgAId}/migration-jobs/${jobId}/assets/${assetId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(Buffer.from(assetResponse.body).toString('utf8')).toBe('legacy scoreboard screenshot');
+
+    await api(app)
+      .get(`/api/v1/orgs/${orgAId}/migration-jobs/${jobId}/assets/${assetId}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(403);
+
+    await api(app)
+      .get(`/api/v1/orgs/${orgAId}/migration-jobs/${jobId}/assets/not-a-real-asset`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(404);
 
     await api(app)
       .post(`/api/v1/orgs/${orgAId}/migration-jobs/${jobId}/import`)

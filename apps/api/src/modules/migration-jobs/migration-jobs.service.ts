@@ -115,6 +115,40 @@ export class MigrationJobsService {
     return job;
   }
 
+  async getAsset(orgId: string, jobId: string, assetId: string) {
+    const asset = await this.prisma.migrationJobAsset.findFirst({
+      where: {
+        id: assetId,
+        migrationJobId: jobId,
+        migrationJob: {
+          organisationId: orgId,
+        },
+      },
+      include: {
+        migrationJob: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    if (!asset) throw new NotFoundException('Migration job asset not found');
+
+    const absolutePath = path.resolve(this.getUploadsRoot(), asset.storagePath);
+
+    try {
+      const buffer = await fs.readFile(absolutePath);
+      return {
+        buffer,
+        mimeType: asset.mimeType || 'application/octet-stream',
+        originalFilename: asset.originalFilename,
+      };
+    } catch {
+      throw new NotFoundException('Migration job asset file not found');
+    }
+  }
+
   async review(
     orgId: string,
     jobId: string,

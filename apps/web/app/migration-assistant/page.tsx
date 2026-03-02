@@ -140,6 +140,36 @@ function MigrationAssistantPageContent() {
     }
   }
 
+  async function openAsset(assetId: string, filename: string) {
+    if (!selectedJobId) return;
+    setStatus('Opening migration asset...');
+    setError(null);
+
+    try {
+      const res = await authFetch(`/orgs/${orgId}/migration-jobs/${selectedJobId}/assets/${assetId}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error?.message ?? 'Failed to open migration asset');
+      }
+
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      setStatus('Migration asset opened');
+    } catch (err) {
+      setStatus(null);
+      setError(err instanceof Error ? err.message : 'Failed to open migration asset');
+    }
+  }
+
   return (
     <MigrationAssistantView
       orgId={orgId}
@@ -159,6 +189,7 @@ function MigrationAssistantPageContent() {
       onCreateJob={() => void createJob()}
       onSaveReview={() => void saveReview()}
       onImportJob={() => void importJob()}
+      onOpenAsset={(assetId, filename) => void openAsset(assetId, filename)}
       onSourceTypeChange={setSourceType}
       onFileChange={setFile}
     />

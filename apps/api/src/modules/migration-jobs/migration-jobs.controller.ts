@@ -5,11 +5,14 @@ import {
   Param,
   Patch,
   Post,
+  Res,
+  StreamableFile,
   Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { OrgMembershipGuard } from '../../common/guards/org-membership.guard';
@@ -43,6 +46,20 @@ export class MigrationJobsController {
   @Roles('ORG_ADMIN', 'COMMISSIONER')
   get(@Param('orgId') orgId: string, @Param('jobId') jobId: string) {
     return this.migrationJobs.get(orgId, jobId);
+  }
+
+  @Get(':jobId/assets/:assetId')
+  @Roles('ORG_ADMIN', 'COMMISSIONER')
+  async getAsset(
+    @Param('orgId') orgId: string,
+    @Param('jobId') jobId: string,
+    @Param('assetId') assetId: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const asset = await this.migrationJobs.getAsset(orgId, jobId, assetId);
+    response.setHeader('Content-Type', asset.mimeType);
+    response.setHeader('Content-Disposition', `inline; filename="${asset.originalFilename}"`);
+    return new StreamableFile(asset.buffer);
   }
 
   @Post()

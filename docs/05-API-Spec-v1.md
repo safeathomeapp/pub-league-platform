@@ -144,6 +144,7 @@ GET /orgs/:orgId/tv/overlay?divisionId=...&teamId=...&at=...
 ## Migration Assistant
 GET   /orgs/:orgId/migration-jobs
 GET   /orgs/:orgId/migration-jobs/:jobId
+GET   /orgs/:orgId/migration-jobs/:jobId/assets/:assetId
 POST  /orgs/:orgId/migration-jobs
 - multipart upload with `file`
 - body field: `sourceType`

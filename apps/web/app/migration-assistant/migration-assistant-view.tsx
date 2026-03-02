@@ -45,6 +45,7 @@ type Props = {
   onCreateJob: () => void;
   onSaveReview: () => void;
   onImportJob: () => void;
+  onOpenAsset: (assetId: string, filename: string) => void;
   onSourceTypeChange: (value: string) => void;
   onFileChange: (file: File | null) => void;
 };
@@ -148,7 +149,10 @@ export function MigrationAssistantView(props: Props) {
               <ul style={{ paddingLeft: 18 }}>
                 {selectedJob.assets.map(asset => (
                   <li key={asset.id}>
-                    {asset.originalFilename} ({asset.mimeType})
+                    {asset.originalFilename} ({asset.mimeType}){' '}
+                    <button type="button" onClick={() => props.onOpenAsset(asset.id, asset.originalFilename)}>
+                      Open
+                    </button>
                   </li>
                 ))}
               </ul>

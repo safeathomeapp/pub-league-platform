@@ -28,6 +28,7 @@ describe('migration assistant smoke', () => {
         onCreateJob={() => {}}
         onSaveReview={() => {}}
         onImportJob={() => {}}
+        onOpenAsset={() => {}}
         onSourceTypeChange={() => {}}
         sourceType="SCREENSHOT"
         onFileChange={() => {}}
@@ -39,6 +40,7 @@ describe('migration assistant smoke', () => {
     expect(html).toContain('Draft JSON');
     expect(html).toContain('Import selected job');
     expect(html).toContain('scoreboard.png');
+    expect(html).toContain('Open');
   });
 
   it('renders empty state when no job is selected', () => {
@@ -60,6 +62,7 @@ describe('migration assistant smoke', () => {
         onCreateJob={() => {}}
         onSaveReview={() => {}}
         onImportJob={() => {}}
+        onOpenAsset={() => {}}
         onSourceTypeChange={() => {}}
         sourceType="SCREENSHOT"
         onFileChange={() => {}}
