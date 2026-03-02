@@ -51,6 +51,10 @@ Use this file for latest completion status and immediate next implementation act
     - API builder native toolchain for resilient `bcrypt` install fallback
     - API runtime `wget` for health checks
     - repaired fresh-bootstrap transfer migration path
+- Post-runtime follow-on delta documented:
+  - `docs/deltas/2026-03-02-post-m9-container-smoke-automation.md`
+  - purpose: turn manual container validation into a repeatable smoke path before any new scope
+  - residual operational risk recorded: migration-job upload assets are currently stored on container-local filesystem and are not yet backed by persistent storage
 
 ## Current source session docs (active truth set)
 - `docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
@@ -77,14 +81,16 @@ Use this file for latest completion status and immediate next implementation act
 - Next session checklist: `docs/Sessions/2026-02-24_15-00-00-next-session-handoff.md`
 
 ## Suggested next step (from roadmap)
-The defined roadmap is implemented through Milestone 9, and the post-M9 runtime-hardening delta has now been validated locally with Docker.
+The defined roadmap is implemented through Milestone 9, and the post-M9 runtime-hardening baseline is validated locally with Docker.
 - Current runtime status:
   - `postgres`, `redis`, `api`, and `web` all start healthy via `docker compose`
   - API health returns `{"ok":true}` at `/api/v1/health`
   - web responds `200` at `http://localhost:3000`
-- Before any further scope, keep change control strict and decide whether the next work item is:
-  - formal commit/closeout of the Docker validation fixes
-  - a newly documented post-M9 delta
+- Current controlled next scope:
+  - execute `docs/deltas/2026-03-02-post-m9-container-smoke-automation.md`
+  - keep work operational only; no feature expansion before that delta is either completed or explicitly superseded
+- Known residual risk to carry into that delta:
+  - migration-job upload assets are written to container-local storage today and will not survive API container recreation
 
 Suggested prompt:
-"Review the validated Docker/runtime fixes, then prepare the next controlled delta or commit closeout."
+"Execute the container smoke automation delta, keep the scope operational-only, and address the remaining upload-storage risk in the documentation."

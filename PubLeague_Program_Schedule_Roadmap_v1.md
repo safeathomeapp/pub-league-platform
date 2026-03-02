@@ -238,6 +238,6 @@ Codex must:
 ---
 
 ## 8) Immediate next actions (today)
-1. Execute the approved delta in `/docs/deltas/2026-03-02-post-m9-runtime-hardening-and-app-containers.md`.
-2. Keep runtime hardening ahead of further product-scope expansion.
-3. Keep change control strict: no new scope beyond that delta without another explicit doc update.
+1. Execute the approved delta in `/docs/deltas/2026-03-02-post-m9-container-smoke-automation.md`.
+2. Keep the next slice operational-only; do not open new product scope before the container smoke path is repeatable.
+3. Carry forward the known runtime gap: migration-job upload assets are currently stored on container-local filesystem and need explicit handling before the runtime baseline is considered durable.

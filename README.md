@@ -31,4 +31,5 @@ Copy env files:
 - Latest status + next action: `/CHATGPT_NEXT_STEP_NOTE.md`
 - Runtime note: Docker compose now defines `postgres`, `redis`, `api`, and `web`.
 - API container startup runs `prisma migrate deploy` before boot.
-- Verification note: live `docker compose` validation is still pending in this environment because `docker` CLI is unavailable here.
+- Verification note: live `docker compose` validation completed on 2026-03-02 with healthy `postgres`, `redis`, `api`, and `web` services.
+- Remaining runtime note: migration-job upload assets are currently written to container-local filesystem and are not yet backed by persistent storage.
