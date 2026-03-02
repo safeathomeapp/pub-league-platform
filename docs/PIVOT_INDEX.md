@@ -1,5 +1,5 @@
 # Pivot Documentation Index
-Updated: 2026-02-24
+Updated: 2026-03-02
 
 This is the single docs entry point for the pivot era.
 
@@ -10,9 +10,20 @@ This is the single docs entry point for the pivot era.
 - `/README.md` (repo boot and runtime basics)
 - `/docs/27-Deep-Code-Audit-2026-02-24.md` (current state audit and gap report)
 - `/docs/28-M8-TV-Overlay-Contract.md` (Milestone 8 implementation contract)
+- `/docs/29-M9-Legacy-Migration-Assistant-Contract.md` (Milestone 9 implementation contract)
+- `/docs/deltas/2026-03-02-post-m9-runtime-hardening-and-app-containers.md` (next approved scope after M9)
 
 ## Current milestone checkpoint
-Based on the latest session notes, implementation is complete through Milestone 7 (including effective-dated transfer workflow and transfer history reads).
+Implementation is complete through Milestone 9.
+- Milestone 8 acceptance was validated on 2026-03-02 against `/docs/28-M8-TV-Overlay-Contract.md`.
+- Validation pass used:
+  - `npm --workspace apps/api run typecheck`
+  - `npm --workspace apps/api run test:e2e`
+  - `npm --workspace apps/web run typecheck`
+  - `npm --workspace apps/web run build`
+- Milestone 9 acceptance was validated on 2026-03-02 against `/docs/29-M9-Legacy-Migration-Assistant-Contract.md`.
+- Additional validation:
+  - `npm --workspace apps/web run test:smoke`
 
 ## Active session docs (current truth set)
 - `/docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
@@ -28,6 +39,9 @@ Based on the latest session notes, implementation is complete through Milestone 
 - `/docs/Sessions/2026-02-24_11-15-00-m8-contract-established.md`
 - `/docs/Sessions/2026-02-24_11-30-00-fixture-lifecycle-authority-hardening.md`
 - `/docs/Sessions/2026-02-24_15-00-00-next-session-handoff.md`
+- `/docs/Sessions/2026-03-02_19-38-46-docs-convergence-and-m9-contract.md`
+- `/docs/Sessions/2026-03-02_19-52-38-m9-migration-assistant-thin-slice.md`
+- `/docs/Sessions/2026-03-02_19-56-57-post-m9-delta-runtime-hardening.md`
 
 ## Superseded session docs
 Older session notes were archived to:
@@ -40,4 +54,5 @@ Older session notes were archived to:
 - `/docs/26-Code-Audit-Inventory.md`
 
 ## Recommended next milestone
-- Milestone 8 hardening/polish (thin slice is in; finish display and resilience pass).
+- No further milestone is defined in the current roadmap.
+- The next approved scope is the runtime-hardening delta in `/docs/deltas/2026-03-02-post-m9-runtime-hardening-and-app-containers.md`.

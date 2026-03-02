@@ -1,33 +1,34 @@
 # Next Session Handoff (Action List)
-Updated: 2026-02-24
+Updated: 2026-03-02
 
 This file is the immediate execution list for the next session.
 
 ## Current Project Position
-- Completed through Milestone 7.
-- Milestone 8 is actively in progress and has a working thin slice:
-  - TV overlay API endpoint
-  - TV overlay web page
-  - overlay hardening pass
+- Completed through Milestone 9.
+- Milestone 8 acceptance was validated on 2026-03-02 against `docs/28-M8-TV-Overlay-Contract.md`.
+- Validation pass completed:
+  - `npm --workspace apps/api run typecheck`
+  - `npm --workspace apps/api run test:e2e`
+  - `npm --workspace apps/web run typecheck`
+  - `npm --workspace apps/web run build`
+- Milestone 9 acceptance was validated on 2026-03-02 against `docs/29-M9-Legacy-Migration-Assistant-Contract.md`.
+- Additional validation:
+  - `npm --workspace apps/web run test:smoke`
 - Transfer reconciliation and roster role domain cleanup are complete.
 
 ## Priority Tasks (Next Session)
-1. Milestone 8 closeout pass (recommended first)
-- Finalize whether Milestone 8 is considered complete with current slice.
-- If yes, document explicit acceptance sign-off in roadmap + handoff note.
-- If no, implement only missing acceptance items from `docs/28-M8-TV-Overlay-Contract.md`.
+1. Roadmap next-step decision
+- Current roadmap-defined work is complete through Milestone 9.
+- Do not start new feature work until the next delta or milestone is documented.
 
-2. Documentation convergence pass
-- Update API spec docs to include pivot-era and TV overlay contracts as authoritative.
-- Mark any remaining legacy-pre-pivot behavior docs as historical/superseded.
-- Ensure `CHATGPT_NEXT_STEP_NOTE.md` and `PIVOT_INDEX.md` remain in lockstep.
+2. Candidate next-scope decision
+- Choose the next roadmap item from post-M9 backlog and write acceptance criteria first.
+- Keep the next slice small and reversible.
 
-3. Low-risk hygiene items from deep audit
-- Remove duplicate `@prisma/client` entry from `apps/api/package.json` devDependencies.
-- Decide whether to add minimal web smoke tests now or defer to Milestone 9 start.
-
-4. Milestone 9 readiness decision
-- If Milestone 8 is signed off, define Milestone 9 minimal contract and first thin slice before coding.
+3. Completed preparatory work
+- Documentation convergence completed on 2026-03-02.
+- Duplicate `@prisma/client` entry in `apps/api/package.json` was removed.
+- Initial web smoke coverage now exists for the migration-assistant route.
 
 ## Known Operational Notes
 - Database migration history was reconciled once using:

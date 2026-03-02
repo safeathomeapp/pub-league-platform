@@ -1,6 +1,11 @@
 # 09 Implementation Plan and Roadmap
 Generated: 2026-02-12
 
+Historical planning note:
+- This roadmap is superseded by `/PubLeague_Program_Schedule_Roadmap_v1.md`.
+- Keep this file for historical reference only.
+- Current milestone status, sequencing, and acceptance live in the pivot roadmap and companion handoff docs.
+
 Given ~20 hours/week, bootstrapped, and “faster is better”, this is the leanest sensible order.
 
 ## Milestone 0 — Repo + foundations (week 1)

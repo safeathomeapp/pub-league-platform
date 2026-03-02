@@ -1,5 +1,7 @@
+import { getServerApiBaseUrl } from '../lib/server-api';
+
 async function getHealth() {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000/api/v1";
+  const base = getServerApiBaseUrl();
   try {
     const res = await fetch(`${base}/health`, { cache: "no-store" });
     return await res.json();
@@ -20,6 +22,7 @@ export default async function Home() {
         <a href="/schedule">Schedule</a> | <a href="/match-night">Match Night</a> | <a href="/disputes">Disputes</a> |{' '}
         <a href="/standings">Standings</a> | <a href="/notifications-admin">Notifications</a> |{' '}
         <a href="/sponsors-admin">Sponsors</a> | <a href="/tv-overlay">TV Overlay</a> |{' '}
+        <a href="/migration-assistant">Migration Assistant</a> |{' '}
         <a href="/onboarding">Demo Onboarding</a> | <a href="/help">Help</a>
       </p>
       <h2>API health</h2>

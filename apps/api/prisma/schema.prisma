@@ -81,6 +81,20 @@ enum TeamRosterRole {
   PLAYER
 }
 
+enum MigrationJobStatus {
+  UPLOADED
+  REVIEW_REQUIRED
+  READY_TO_IMPORT
+  IMPORTED
+  FAILED
+}
+
+enum MigrationSourceType {
+  SCREENSHOT
+  CSV
+  OTHER
+}
+
 model Organisation {
   id        String   @id @default(uuid())
   name      String
@@ -94,6 +108,8 @@ model Organisation {
   notificationOutbox NotificationOutbox[]
   rosterTransfers    RosterTransferAudit[]
   sponsorSlots       SponsorSlot[]
+  migrationJobs      MigrationJob[]
+  migrationImports   MigrationImportAudit[]
 }
 
 model User {
@@ -105,6 +121,8 @@ model User {
   memberships OrgMembership[]
   matchEvents MatchEvent[]
   rosterTransfers RosterTransferAudit[]
+  migrationJobs MigrationJob[]
+  migrationImports MigrationImportAudit[]
 }
 
 model OrgMembership {
@@ -349,4 +367,54 @@ model SponsorSlot {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
   @@index([organisationId, scopeType, scopeId, sortOrder, createdAt])
+}
+
+model MigrationJob {
+  id              String              @id @default(uuid())
+  organisationId  String
+  createdByUserId String
+  status          MigrationJobStatus
+  sourceType      MigrationSourceType
+  draft           Json
+  failureReason   String?
+  reviewedAt      DateTime?
+  importedAt      DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdBy    User                   @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  assets       MigrationJobAsset[]
+  importAudits MigrationImportAudit[]
+
+  @@index([organisationId, status, createdAt])
+}
+
+model MigrationJobAsset {
+  id               String   @id @default(uuid())
+  migrationJobId   String
+  originalFilename String
+  mimeType         String
+  storagePath      String
+  createdAt        DateTime @default(now())
+
+  migrationJob MigrationJob @relation(fields: [migrationJobId], references: [id], onDelete: Cascade)
+
+  @@index([migrationJobId, createdAt])
+}
+
+model MigrationImportAudit {
+  id             String   @id @default(uuid())
+  organisationId String
+  migrationJobId String
+  actorUserId    String
+  summaryJson    Json
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  migrationJob  MigrationJob @relation(fields: [migrationJobId], references: [id], onDelete: Cascade)
+  actorUser     User         @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, createdAt])
+  @@index([migrationJobId, createdAt])
 }

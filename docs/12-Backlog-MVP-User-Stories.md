@@ -1,5 +1,11 @@
 # 12 Backlog — MVP User Stories (Prioritised)
 Generated: 2026-02-12
+Updated: 2026-03-02
+
+Historical backlog note:
+- This file is the original MVP backlog baseline.
+- Pivot-era workflow semantics are governed by `/PubLeague_Program_Schedule_Roadmap_v1.md` and `/docs/24-Pivot-Pack-New-Direction.md`.
+- Where this file says direct completion, read that as governed submit/approve/reject/lock flow.
 
 Priority legend:
 - P0: must-have for public beta
@@ -27,7 +33,7 @@ Priority legend:
 - P0: Issue match control tokens per fixture.
 - P0: Captain transfers token; recipient accepts.
 - P0: Token-holder records frames as events.
-- P0: Complete match; standings update.
+- P0: Token-holder submits result package; opponent approves or rejects; standings update only after lock.
 
 ## P0 — Notifications
 - P0: Send 24h reminders to captains via SMS or WhatsApp.
@@ -46,6 +52,6 @@ Priority legend:
 ## P2 — Later
 - P2: Offline-first local queue
 - P2: Evidence uploads
-- P2: TV mode
+- P2: Legacy migration assistant
 - P2: Payments
 - P2: Darts (501) sport module

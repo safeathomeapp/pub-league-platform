@@ -1,5 +1,11 @@
 # 02 PRD — MVP and Phases
 Generated: 2026-02-12
+Updated: 2026-03-02
+
+Historical baseline note:
+- This document captures the original MVP framing.
+- Pivot-era implementation order and match-governance semantics are defined by `/PubLeague_Program_Schedule_Roadmap_v1.md`, `/CHATGPT_NEXT_STEP_NOTE.md`, and `/docs/PIVOT_INDEX.md`.
+- Where this file conflicts with pivot-era workflow or phase ordering, the pivot docs win.
 
 ## MVP Functional Requirements
 
@@ -32,7 +38,8 @@ Permission model:
 - Publish schedule to:
   - public read-only share link (optional MVP)
   - .ics calendar export for captains/players
-- Fixture status: scheduled → in_progress → completed.
+- Original baseline lifecycle: scheduled → in_progress → completed.
+- Pivot implementation override: fixture governance uses explicit state transitions including opponent sign-off and locked outcomes.
 
 ### E) Match capture and governance
 Match control tokens:
@@ -43,7 +50,8 @@ Match control tokens:
 Match capture:
 - English 8-ball: enter frame wins; optionally per-frame player assignments (Phase 2).
 - Minimal data to compute result: per-frame winner.
-- Lock match on completion, with a configurable edit window.
+- Original baseline assumed direct completion.
+- Pivot implementation override: result submission is bilateral and only locked outcomes are authoritative.
 
 Audit:
 - Every change is an event in match_event_log with revision sequencing.
@@ -98,7 +106,8 @@ Phase 3 (Commercial + Darts):
 - Subscription billing
 - Add PDC 501
 - Optional payments module (entry fees) as add-on
-- TV/venue mode
+- Original baseline listed TV/venue mode here.
+- Pivot roadmap override: TV overlay was delivered as Milestone 8 in Phase 2.
 
 Phase 4 (Scale/Enterprise):
 - Federation exports + API access tiers

@@ -38,7 +38,6 @@
     "@nestjs/cli": "^11.0.16",
     "@nestjs/schematics": "^10.1.4",
     "@nestjs/testing": "^10.4.4",
-    "@prisma/client": "^5.18.0",
     "@types/bcrypt": "^5.0.2",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.10",

@@ -5,6 +5,7 @@ dist
 .env.local
 apps/web/.next/
 apps/web/.next/**
+apps/api/uploads/
 .next/
 coverage/
 *.tsbuildinfo

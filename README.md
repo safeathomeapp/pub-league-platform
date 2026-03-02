@@ -14,9 +14,7 @@ This is a starter scaffold aligned to the documentation pack.
 1. Install Node.js 20+.
 2. From repo root:
    - `npm install`
-   - `docker compose up -d`
-   - `npm run db:push`
-   - `npm run dev`
+   - `docker compose up --build -d`
 
 Web: http://localhost:3000  
 API: http://localhost:4000 (health: `/api/v1/health`)
@@ -31,3 +29,6 @@ Copy env files:
 - Multi-tenancy enforced by `organisationId` in schema and request scoping (to be implemented).
 - Canonical pivot roadmap: `/PubLeague_Program_Schedule_Roadmap_v1.md`
 - Latest status + next action: `/CHATGPT_NEXT_STEP_NOTE.md`
+- Runtime note: Docker compose now defines `postgres`, `redis`, `api`, and `web`.
+- API container startup runs `prisma migrate deploy` before boot.
+- Verification note: live `docker compose` validation is still pending in this environment because `docker` CLI is unavailable here.

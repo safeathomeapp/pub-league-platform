@@ -6,17 +6,31 @@ This document is the authoritative roadmap for the pivot. It defines the sequenc
 
 ---
 
-## Current status checkpoint (as of 2026-02-24)
+## Current status checkpoint (as of 2026-03-02)
 - Canonical companion status doc: `/CHATGPT_NEXT_STEP_NOTE.md`.
-- Completed through Milestone 7 based on latest session docs:
+- Completed through Milestone 9 based on latest session docs and 2026-03-02 validation:
   - `docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
   - `docs/Sessions/2026-02-17_21-06-21-m6-sponsor-slots-minimal.md`
   - `docs/Sessions/2026-02-17_22-54-23-m6-web-sponsors-admin-ui.md`
   - `docs/Sessions/2026-02-17_23-12-24-web-match-night-signoff-ux.md`
   - `docs/Sessions/2026-02-24_11-00-00-m7-effective-date-transfer-history.md`
-- Milestone 8 thin slice started:
+  - `docs/Sessions/2026-02-24_11-15-00-m8-contract-established.md`
   - `docs/Sessions/2026-02-24_12-00-00-m8-tv-overlay-thin-slice.md`
-- Active milestone: Milestone 8 (Phase 2 TV mode overlay + pub display).
+  - `docs/Sessions/2026-02-24_12-45-00-m8-overlay-hardening-and-tests.md`
+  - `docs/Sessions/2026-03-02_19-38-46-docs-convergence-and-m9-contract.md`
+  - `docs/Sessions/2026-03-02_19-52-38-m9-migration-assistant-thin-slice.md`
+- Milestone 8 acceptance validation:
+  - `npm --workspace apps/api run typecheck`
+  - `npm --workspace apps/api run test:e2e`
+  - `npm --workspace apps/web run typecheck`
+  - `npm --workspace apps/web run build`
+- Milestone 9 acceptance validation:
+  - `npm --workspace apps/api run typecheck`
+  - `npm --workspace apps/api run test:e2e`
+  - `npm --workspace apps/web run typecheck`
+  - `npm --workspace apps/web run test:smoke`
+  - `npm --workspace apps/web run build`
+- Active milestone: none. Roadmap-defined work is complete through Milestone 9.
 
 ---
 
@@ -224,6 +238,6 @@ Codex must:
 ---
 
 ## 8) Immediate next actions (today)
-1. Define Milestone 8 minimal overlay contract (view model + sponsor slot placement rules).  
-2. Implement read-only TV overlay slice with deterministic refresh/update behavior.  
-3. Add focused tests and update session docs.  
+1. Execute the approved delta in `/docs/deltas/2026-03-02-post-m9-runtime-hardening-and-app-containers.md`.
+2. Keep runtime hardening ahead of further product-scope expansion.
+3. Keep change control strict: no new scope beyond that delta without another explicit doc update.

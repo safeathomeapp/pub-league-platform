@@ -17,8 +17,8 @@ Scope: repo-wide deep audit for current implementation status, quality gates, te
 - Milestone 5: complete
 - Milestone 6: complete
 - Milestone 7: complete
-- Milestone 8: in progress (thin slice + hardening in place)
-- Milestone 9: not started
+- Milestone 8: complete (validated 2026-03-02 against contract + quality gates)
+- Milestone 9: complete (validated 2026-03-02 against contract + quality gates)
 
 ## 3) What We Have Now
 - Canonical roadmap and status docs are in place:
@@ -68,6 +68,6 @@ Scope: repo-wide deep audit for current implementation status, quality gates, te
 - Current tests include org isolation coverage for key modules (including latest transfer history path).
 
 ## 6) Recommended Next Actions
-1. Decide Milestone 8 closeout criteria and mark complete when accepted.
-2. Run a docs convergence pass: pivot-era API semantics as default, legacy docs explicitly historical.
-3. Address low-priority hygiene (`apps/api/package.json` duplicate `@prisma/client`, optional web smoke tests).
+1. Decide the next roadmap delta after Milestone 9 before writing new feature code.
+2. Keep legacy docs/status docs aligned as new roadmap work is defined.
+3. Expand web smoke coverage incrementally from the migration-assistant slice rather than adding a separate parallel UI test stack prematurely.
