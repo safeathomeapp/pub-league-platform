@@ -32,4 +32,10 @@ Copy env files:
 - Runtime note: Docker compose now defines `postgres`, `redis`, `api`, and `web`.
 - API container startup runs `prisma migrate deploy` before boot.
 - Verification note: live `docker compose` validation completed on 2026-03-02 with healthy `postgres`, `redis`, `api`, and `web` services.
+- Container smoke command: `npm run smoke:containers`
+- Container smoke behavior:
+  - runs `docker compose up --build -d`
+  - verifies API health and web root response
+  - prints `docker compose ps`
+  - runs `docker compose down` when finished
 - Remaining runtime note: migration-job upload assets are currently written to container-local filesystem and are not yet backed by persistent storage.

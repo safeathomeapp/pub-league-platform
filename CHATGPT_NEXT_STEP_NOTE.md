@@ -55,6 +55,10 @@ Use this file for latest completion status and immediate next implementation act
   - `docs/deltas/2026-03-02-post-m9-container-smoke-automation.md`
   - purpose: turn manual container validation into a repeatable smoke path before any new scope
   - residual operational risk recorded: migration-job upload assets are currently stored on container-local filesystem and are not yet backed by persistent storage
+- Post-runtime container smoke automation completed:
+  - repo command: `npm run smoke:containers`
+  - scripted compose up, health verification, compose status, and compose down
+  - session note: `docs/Sessions/2026-03-02_22-05-00-container-smoke-automation.md`
 
 ## Current source session docs (active truth set)
 - `docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
@@ -74,6 +78,7 @@ Use this file for latest completion status and immediate next implementation act
 - `docs/Sessions/2026-03-02_19-52-38-m9-migration-assistant-thin-slice.md`
 - `docs/Sessions/2026-03-02_19-56-57-post-m9-delta-runtime-hardening.md`
 - `docs/Sessions/2026-03-02_20-05-00-runtime-hardening-app-containers-implementation.md`
+- `docs/Sessions/2026-03-02_22-05-00-container-smoke-automation.md`
 
 ## Archive note
 - Older session notes were moved to `docs/archive/sessions-superseded/`.
@@ -81,16 +86,15 @@ Use this file for latest completion status and immediate next implementation act
 - Next session checklist: `docs/Sessions/2026-02-24_15-00-00-next-session-handoff.md`
 
 ## Suggested next step (from roadmap)
-The defined roadmap is implemented through Milestone 9, and the post-M9 runtime-hardening baseline is validated locally with Docker.
+The defined roadmap is implemented through Milestone 9, the runtime baseline is validated locally with Docker, and the container smoke path is now repeatable.
 - Current runtime status:
   - `postgres`, `redis`, `api`, and `web` all start healthy via `docker compose`
   - API health returns `{"ok":true}` at `/api/v1/health`
   - web responds `200` at `http://localhost:3000`
-- Current controlled next scope:
-  - execute `docs/deltas/2026-03-02-post-m9-container-smoke-automation.md`
-  - keep work operational only; no feature expansion before that delta is either completed or explicitly superseded
-- Known residual risk to carry into that delta:
+- Current locked constraint before any feature proposal:
+  - keep change control strict and document the next delta explicitly
+- Known residual runtime risk:
   - migration-job upload assets are written to container-local storage today and will not survive API container recreation
 
 Suggested prompt:
-"Execute the container smoke automation delta, keep the scope operational-only, and address the remaining upload-storage risk in the documentation."
+"Propose the next delta only after accounting for migration-job upload persistence and keeping the scope narrow."

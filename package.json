@@ -10,6 +10,7 @@
     "lint": "npm run -ws lint",
     "typecheck": "npm run -ws typecheck",
     "format": "npm run -ws format",
+    "smoke:containers": "powershell -ExecutionPolicy Bypass -File ./scripts/container-smoke.ps1",
     "db:push": "npm --workspace apps/api run db:push",
     "db:migrate": "npm --workspace apps/api run db:migrate",
     "db:studio": "npm --workspace apps/api run db:studio",

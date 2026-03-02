@@ -2,8 +2,8 @@
 Date: 2026-03-02
 
 Implementation status:
-- Proposed only.
-- Not yet implemented.
+- Implemented on 2026-03-02.
+- Validation completed locally.
 
 ## What changes
 Add a narrow operational smoke path that verifies the container baseline established by the post-M9 runtime-hardening delta. The scope is limited to scripted local validation and documentation cleanup around the known-good `docker compose` startup path. This is not new product functionality and does not extend league/domain scope.
@@ -38,3 +38,20 @@ This delta keeps the newly validated runtime path durable before any future prod
 - No milestone sequencing shift.
 - Small operational follow-on only.
 - Preserves the post-M9 container baseline and reduces regression risk before any new feature delta.
+
+## Validation closeout
+Completed on 2026-03-02 with:
+- `npm run smoke:containers`
+- scripted `docker compose up --build -d`
+- scripted API health verification
+- scripted web root verification
+- scripted `docker compose ps`
+- scripted `docker compose down`
+- script-level Docker Desktop reliability handling:
+  - resolves Docker CLI from PATH or standard Docker Desktop install path
+  - prepends Docker Desktop bin path so credential helpers resolve
+  - starts from `docker compose down --remove-orphans`
+  - forces classic builder mode for this smoke path because BuildKit snapshot export proved flaky on this machine
+
+Residual runtime risk kept explicit:
+- migration-job upload assets are still stored on container-local filesystem and are not yet backed by persistent storage

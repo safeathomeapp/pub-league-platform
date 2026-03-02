@@ -238,6 +238,6 @@ Codex must:
 ---
 
 ## 8) Immediate next actions (today)
-1. Execute the approved delta in `/docs/deltas/2026-03-02-post-m9-container-smoke-automation.md`.
-2. Keep the next slice operational-only; do not open new product scope before the container smoke path is repeatable.
-3. Carry forward the known runtime gap: migration-job upload assets are currently stored on container-local filesystem and need explicit handling before the runtime baseline is considered durable.
+1. Treat the post-M9 runtime baseline as established: Docker validation and container smoke automation are complete.
+2. Before any feature proposal, account explicitly for the remaining runtime gap: migration-job upload assets are currently stored on container-local filesystem.
+3. Keep change control strict: the next step must begin with a new explicit delta document, not direct implementation.
