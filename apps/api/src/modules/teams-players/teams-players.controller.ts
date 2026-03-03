@@ -22,7 +22,7 @@ export class TeamsPlayersController {
   @Post('divisions/:divisionId/teams')
   @Roles('ORG_ADMIN', 'COMMISSIONER')
   createTeam(@Param('orgId') orgId: string, @Param('divisionId') divisionId: string, @Body() dto: CreateTeamDto) {
-    return this.teamsPlayers.createTeam(orgId, divisionId, dto.name);
+    return this.teamsPlayers.createTeam(orgId, divisionId, { name: dto.name, venueId: dto.venueId });
   }
 
   @Get('divisions/:divisionId/teams')
@@ -34,7 +34,7 @@ export class TeamsPlayersController {
   @Patch('teams/:teamId')
   @Roles('ORG_ADMIN', 'COMMISSIONER')
   updateTeam(@Param('orgId') orgId: string, @Param('teamId') teamId: string, @Body() dto: UpdateTeamDto) {
-    return this.teamsPlayers.updateTeam(orgId, teamId, dto.name);
+    return this.teamsPlayers.updateTeam(orgId, teamId, { name: dto.name, venueId: dto.venueId });
   }
 
   @Post('players')

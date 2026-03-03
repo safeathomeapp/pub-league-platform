@@ -35,6 +35,35 @@ type MigrationDraft = {
   }>;
 };
 
+type ValidationIssue = {
+  code: string;
+  message: string;
+  path: string;
+};
+
+type MigrationDraftValidationSummary = {
+  valid: boolean;
+  errorCount: number;
+  warningCount: number;
+  errors: ValidationIssue[];
+  warnings: ValidationIssue[];
+};
+
+type MigrationImportPreviewSummary = {
+  leagueName: string;
+  seasonName: string;
+  divisionNames: string[];
+  teamNames: string[];
+  playerDisplayNames: string[];
+  fixturePairs: string[];
+  counts: {
+    divisions: number;
+    teams: number;
+    players: number;
+    fixtures: number;
+  };
+};
+
 @Injectable()
 export class MigrationJobsService {
   constructor(private prisma: PrismaService) {}
@@ -112,7 +141,7 @@ export class MigrationJobsService {
       },
     });
     if (!job) throw new NotFoundException('Migration job not found');
-    return job;
+    return this.withReviewSummaries(orgId, job);
   }
 
   async getAsset(orgId: string, jobId: string, assetId: string) {
@@ -155,14 +184,19 @@ export class MigrationJobsService {
     dto: { draft: Record<string, unknown>; readyToImport?: boolean },
   ) {
     await this.get(orgId, jobId);
+    const normalizedDraft = this.normalizeDraft(dto.draft);
+    const validationSummary = await this.buildValidationSummary(orgId, normalizedDraft);
 
-    return this.prisma.migrationJob.update({
+    const updated = await this.prisma.migrationJob.update({
       where: { id: jobId },
       data: {
-        draft: this.normalizeDraft(dto.draft),
+        draft: normalizedDraft,
         reviewedAt: new Date(),
         failureReason: null,
-        status: dto.readyToImport ? MigrationJobStatus.READY_TO_IMPORT : MigrationJobStatus.REVIEW_REQUIRED,
+        status:
+          dto.readyToImport && validationSummary.valid
+            ? MigrationJobStatus.READY_TO_IMPORT
+            : MigrationJobStatus.REVIEW_REQUIRED,
       },
       include: {
         assets: {
@@ -173,6 +207,12 @@ export class MigrationJobsService {
         },
       },
     });
+
+    return {
+      ...updated,
+      validationSummary,
+      importPreviewSummary: this.buildImportPreviewSummary(normalizedDraft),
+    };
   }
 
   async import(orgId: string, jobId: string, actorUserId: string, dto: { confirm: boolean }) {
@@ -187,6 +227,14 @@ export class MigrationJobsService {
     }
 
     const draft = this.normalizeDraft(job.draft as Record<string, unknown>);
+    const validation = await this.buildValidationSummary(orgId, draft);
+    if (!validation.valid) {
+      throw new BadRequestException({
+        code: 'MIGRATION_DRAFT_INVALID',
+        message: 'Migration job draft has blocking validation errors',
+        details: validation,
+      });
+    }
 
     try {
       const summary = await this.prisma.$transaction(async tx => {
@@ -444,5 +492,343 @@ export class MigrationJobsService {
     const parsed = new Date(this.requireNonEmptyString(value, field));
     if (Number.isNaN(parsed.getTime())) throw new BadRequestException(`${field} must be a valid ISO date`);
     return parsed;
+  }
+
+  private async withReviewSummaries<T extends { draft: unknown }>(orgId: string, job: T) {
+    const draft = this.normalizeDraft(job.draft as Record<string, unknown>);
+    const validationSummary = await this.buildValidationSummary(orgId, draft);
+    const importPreviewSummary = this.buildImportPreviewSummary(draft);
+    return {
+      ...job,
+      validationSummary,
+      importPreviewSummary,
+    };
+  }
+
+  private async buildValidationSummary(orgId: string, draft: MigrationDraft): Promise<MigrationDraftValidationSummary> {
+    const summary = this.createEmptyValidationSummary();
+    this.collectDraftValidationIssues(summary, draft);
+
+    const rulesetId = draft.league?.rulesetId?.trim();
+    if (rulesetId) {
+      const ruleset = await this.prisma.ruleset.findFirst({
+        where: { id: rulesetId, organisationId: orgId },
+        select: { id: true },
+      });
+      if (!ruleset) {
+        summary.errors.push({
+          code: 'RULESET_NOT_IN_ORG',
+          message: 'League rulesetId does not belong to this organisation',
+          path: 'draft.league.rulesetId',
+        });
+      }
+    }
+
+    return this.finalizeValidationSummary(summary);
+  }
+
+  private createEmptyValidationSummary(): MigrationDraftValidationSummary {
+    return {
+      valid: true,
+      errorCount: 0,
+      warningCount: 0,
+      errors: [],
+      warnings: [],
+    };
+  }
+
+  private finalizeValidationSummary(summary: MigrationDraftValidationSummary): MigrationDraftValidationSummary {
+    return {
+      ...summary,
+      valid: summary.errors.length === 0,
+      errorCount: summary.errors.length,
+      warningCount: summary.warnings.length,
+    };
+  }
+
+  private collectDraftValidationIssues(summary: MigrationDraftValidationSummary, draft: MigrationDraft) {
+    if (!draft.league?.name?.trim()) {
+      summary.errors.push({
+        code: 'LEAGUE_NAME_REQUIRED',
+        message: 'League name is required',
+        path: 'draft.league.name',
+      });
+    }
+    if (!draft.season?.name?.trim()) {
+      summary.errors.push({
+        code: 'SEASON_NAME_REQUIRED',
+        message: 'Season name is required',
+        path: 'draft.season.name',
+      });
+    }
+    this.validateDateField(summary, draft.season?.startDate, 'draft.season.startDate', 'Season startDate is required');
+    this.validateDateField(summary, draft.season?.endDate, 'draft.season.endDate', 'Season endDate is required');
+    if ((draft.divisions ?? []).length === 0) {
+      summary.errors.push({
+        code: 'DIVISION_REQUIRED',
+        message: 'At least one division is required',
+        path: 'draft.divisions',
+      });
+    }
+    if ((draft.teams ?? []).length === 0) {
+      summary.errors.push({
+        code: 'TEAM_REQUIRED',
+        message: 'At least one team is required',
+        path: 'draft.teams',
+      });
+    }
+
+    const divisionIds = new Set<string>();
+    const divisionNames = new Set<string>();
+    for (const [index, division] of (draft.divisions ?? []).entries()) {
+      const tempId = division.tempId?.trim() ?? '';
+      const name = division.name?.trim() ?? '';
+      if (!tempId) {
+        summary.errors.push({
+          code: 'DIVISION_TEMP_ID_REQUIRED',
+          message: 'Division tempId is required',
+          path: `draft.divisions[${index}].tempId`,
+        });
+      } else if (divisionIds.has(tempId)) {
+        summary.errors.push({
+          code: 'DIVISION_TEMP_ID_DUPLICATE',
+          message: `Duplicate division tempId: ${tempId}`,
+          path: `draft.divisions[${index}].tempId`,
+        });
+      } else {
+        divisionIds.add(tempId);
+      }
+
+      if (!name) {
+        summary.errors.push({
+          code: 'DIVISION_NAME_REQUIRED',
+          message: 'Division name is required',
+          path: `draft.divisions[${index}].name`,
+        });
+      } else {
+        const key = name.toLowerCase();
+        if (divisionNames.has(key)) {
+          summary.errors.push({
+            code: 'DIVISION_NAME_DUPLICATE',
+            message: `Duplicate division name: ${name}`,
+            path: `draft.divisions[${index}].name`,
+          });
+        } else {
+          divisionNames.add(key);
+        }
+      }
+    }
+
+    const teamIds = new Set<string>();
+    const teamNamesByDivision = new Set<string>();
+    for (const [index, team] of (draft.teams ?? []).entries()) {
+      const tempId = team.tempId?.trim() ?? '';
+      const divisionTempId = team.divisionTempId?.trim() ?? '';
+      const name = team.name?.trim() ?? '';
+      if (!tempId) {
+        summary.errors.push({
+          code: 'TEAM_TEMP_ID_REQUIRED',
+          message: 'Team tempId is required',
+          path: `draft.teams[${index}].tempId`,
+        });
+      } else if (teamIds.has(tempId)) {
+        summary.errors.push({
+          code: 'TEAM_TEMP_ID_DUPLICATE',
+          message: `Duplicate team tempId: ${tempId}`,
+          path: `draft.teams[${index}].tempId`,
+        });
+      } else {
+        teamIds.add(tempId);
+      }
+
+      if (!divisionTempId) {
+        summary.errors.push({
+          code: 'TEAM_DIVISION_TEMP_ID_REQUIRED',
+          message: 'Team divisionTempId is required',
+          path: `draft.teams[${index}].divisionTempId`,
+        });
+      } else if (!divisionIds.has(divisionTempId)) {
+        summary.errors.push({
+          code: 'TEAM_DIVISION_UNKNOWN',
+          message: `Unknown division tempId: ${divisionTempId}`,
+          path: `draft.teams[${index}].divisionTempId`,
+        });
+      }
+
+      if (!name) {
+        summary.errors.push({
+          code: 'TEAM_NAME_REQUIRED',
+          message: 'Team name is required',
+          path: `draft.teams[${index}].name`,
+        });
+      } else if (divisionTempId) {
+        const key = `${divisionTempId.toLowerCase()}::${name.toLowerCase()}`;
+        if (teamNamesByDivision.has(key)) {
+          summary.errors.push({
+            code: 'TEAM_NAME_DUPLICATE_IN_DIVISION',
+            message: `Duplicate team name in division: ${name}`,
+            path: `draft.teams[${index}].name`,
+          });
+        } else {
+          teamNamesByDivision.add(key);
+        }
+      }
+    }
+
+    const playerEmails = new Set<string>();
+    for (const [index, player] of (draft.players ?? []).entries()) {
+      const displayName = player.displayName?.trim() ?? '';
+      const contactEmail = player.contactEmail?.trim() ?? '';
+      if (!displayName) {
+        summary.errors.push({
+          code: 'PLAYER_DISPLAY_NAME_REQUIRED',
+          message: 'Player displayName is required',
+          path: `draft.players[${index}].displayName`,
+        });
+      }
+      if (contactEmail) {
+        const emailKey = contactEmail.toLowerCase();
+        if (playerEmails.has(emailKey)) {
+          summary.errors.push({
+            code: 'PLAYER_EMAIL_DUPLICATE',
+            message: `Duplicate player contactEmail: ${contactEmail}`,
+            path: `draft.players[${index}].contactEmail`,
+          });
+        } else {
+          playerEmails.add(emailKey);
+        }
+      } else {
+        summary.warnings.push({
+          code: 'PLAYER_EMAIL_MISSING',
+          message: 'Player contactEmail is missing',
+          path: `draft.players[${index}].contactEmail`,
+        });
+      }
+    }
+
+    for (const [index, fixture] of (draft.fixtures ?? []).entries()) {
+      const divisionTempId = fixture.divisionTempId?.trim() ?? '';
+      const homeTeamTempId = fixture.homeTeamTempId?.trim() ?? '';
+      const awayTeamTempId = fixture.awayTeamTempId?.trim() ?? '';
+      if (!divisionTempId) {
+        summary.errors.push({
+          code: 'FIXTURE_DIVISION_REQUIRED',
+          message: 'Fixture divisionTempId is required',
+          path: `draft.fixtures[${index}].divisionTempId`,
+        });
+      } else if (!divisionIds.has(divisionTempId)) {
+        summary.errors.push({
+          code: 'FIXTURE_DIVISION_UNKNOWN',
+          message: `Unknown fixture division tempId: ${divisionTempId}`,
+          path: `draft.fixtures[${index}].divisionTempId`,
+        });
+      }
+
+      if (!homeTeamTempId) {
+        summary.errors.push({
+          code: 'FIXTURE_HOME_REQUIRED',
+          message: 'Fixture homeTeamTempId is required',
+          path: `draft.fixtures[${index}].homeTeamTempId`,
+        });
+      } else if (!teamIds.has(homeTeamTempId)) {
+        summary.errors.push({
+          code: 'FIXTURE_HOME_UNKNOWN',
+          message: `Unknown home team tempId: ${homeTeamTempId}`,
+          path: `draft.fixtures[${index}].homeTeamTempId`,
+        });
+      }
+
+      if (!awayTeamTempId) {
+        summary.errors.push({
+          code: 'FIXTURE_AWAY_REQUIRED',
+          message: 'Fixture awayTeamTempId is required',
+          path: `draft.fixtures[${index}].awayTeamTempId`,
+        });
+      } else if (!teamIds.has(awayTeamTempId)) {
+        summary.errors.push({
+          code: 'FIXTURE_AWAY_UNKNOWN',
+          message: `Unknown away team tempId: ${awayTeamTempId}`,
+          path: `draft.fixtures[${index}].awayTeamTempId`,
+        });
+      }
+
+      if (homeTeamTempId && awayTeamTempId && homeTeamTempId === awayTeamTempId) {
+        summary.errors.push({
+          code: 'FIXTURE_SAME_TEAM',
+          message: 'Fixture home and away team cannot be the same',
+          path: `draft.fixtures[${index}]`,
+        });
+      }
+
+      if (fixture.scheduledAt) {
+        this.validateDateField(
+          summary,
+          fixture.scheduledAt,
+          `draft.fixtures[${index}].scheduledAt`,
+          'Fixture scheduledAt must be a valid ISO date',
+          false,
+        );
+      }
+    }
+  }
+
+  private validateDateField(
+    summary: MigrationDraftValidationSummary,
+    value: string | undefined | null,
+    path: string,
+    message: string,
+    required = true,
+  ) {
+    const normalized = value?.trim() ?? '';
+    if (!normalized) {
+      if (required) {
+        summary.errors.push({
+          code: 'DATE_REQUIRED',
+          message,
+          path,
+        });
+      }
+      return;
+    }
+
+    const parsed = new Date(normalized);
+    if (Number.isNaN(parsed.getTime())) {
+      summary.errors.push({
+        code: 'DATE_INVALID',
+        message: required ? `${path} must be a valid ISO date` : message,
+        path,
+      });
+    }
+  }
+
+  private buildImportPreviewSummary(draft: MigrationDraft): MigrationImportPreviewSummary {
+    const teamsByTempId = new Map(
+      (draft.teams ?? []).map(team => [team.tempId?.trim() ?? '', team.name?.trim() ?? '']),
+    );
+
+    return {
+      leagueName: draft.league?.name?.trim() ?? '',
+      seasonName: draft.season?.name?.trim() ?? '',
+      divisionNames: (draft.divisions ?? [])
+        .map(division => division.name?.trim() ?? '')
+        .filter(Boolean),
+      teamNames: (draft.teams ?? [])
+        .map(team => team.name?.trim() ?? '')
+        .filter(Boolean),
+      playerDisplayNames: (draft.players ?? [])
+        .map(player => player.displayName?.trim() ?? '')
+        .filter(Boolean),
+      fixturePairs: (draft.fixtures ?? []).map(fixture => {
+        const home = teamsByTempId.get(fixture.homeTeamTempId?.trim() ?? '') || fixture.homeTeamTempId?.trim() || '?';
+        const away = teamsByTempId.get(fixture.awayTeamTempId?.trim() ?? '') || fixture.awayTeamTempId?.trim() || '?';
+        return `${home} vs ${away}`;
+      }),
+      counts: {
+        divisions: draft.divisions?.length ?? 0,
+        teams: draft.teams?.length ?? 0,
+        players: draft.players?.length ?? 0,
+        fixtures: draft.fixtures?.length ?? 0,
+      },
+    };
   }
 }

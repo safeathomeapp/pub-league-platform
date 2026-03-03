@@ -6,9 +6,13 @@ import { PrismaService } from '../db/prisma.service';
 export class TeamsPlayersService {
   constructor(private prisma: PrismaService) {}
 
-  async createTeam(orgId: string, divisionId: string, name: string) {
+  async createTeam(orgId: string, divisionId: string, data: { name: string; venueId?: string }) {
     await this.assertDivisionInOrg(orgId, divisionId);
-    return this.prisma.team.create({ data: { divisionId, name } });
+    if (data.venueId) await this.assertVenueInOrg(orgId, data.venueId);
+    return this.prisma.team.create({
+      data: { divisionId, name: data.name, ...(data.venueId ? { venueId: data.venueId } : {}) },
+      include: { venue: true },
+    });
   }
 
   async listTeams(orgId: string, divisionId: string) {
@@ -25,14 +29,22 @@ export class TeamsPlayersService {
 
     return this.prisma.team.findMany({
       where: { divisionId },
-      include: { roster: { include: { player: true }, orderBy: { joinedAt: 'asc' } } },
+      include: { venue: true, roster: { include: { player: true }, orderBy: { joinedAt: 'asc' } } },
       orderBy: { name: 'asc' },
     });
   }
 
-  async updateTeam(orgId: string, teamId: string, name: string) {
+  async updateTeam(orgId: string, teamId: string, data: { name?: string; venueId?: string | null }) {
     await this.assertTeamInOrg(orgId, teamId);
-    return this.prisma.team.update({ where: { id: teamId }, data: { name } });
+    if (data.venueId) await this.assertVenueInOrg(orgId, data.venueId);
+    return this.prisma.team.update({
+      where: { id: teamId },
+      data: {
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.venueId !== undefined ? { venueId: data.venueId } : {}),
+      },
+      include: { venue: true },
+    });
   }
 
   async createPlayer(
@@ -353,6 +365,14 @@ export class TeamsPlayersService {
       select: { id: true },
     });
     if (!season) throw new NotFoundException('Season not found');
+  }
+
+  private async assertVenueInOrg(orgId: string, venueId: string): Promise<void> {
+    const venue = await this.prisma.venue.findFirst({
+      where: { id: venueId, organisationId: orgId },
+      select: { id: true },
+    });
+    if (!venue) throw new NotFoundException('Venue not found');
   }
 
   async reconcileDueTransfers(filter?: { orgId?: string; seasonId?: string }): Promise<{ appliedCount: number }> {

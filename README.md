@@ -3,6 +3,16 @@ Generated: 2026-02-12
 
 This is a starter scaffold aligned to the documentation pack.
 
+## Start Here
+For current work, use this reading order:
+1. `/README.md` for local runtime/bootstrap basics
+2. `/docs/PIVOT_INDEX.md` for the canonical docs map
+3. `/PubLeague_Program_Schedule_Roadmap_v1.md` for the authoritative roadmap
+4. `/CHATGPT_NEXT_STEP_NOTE.md` for current completion status and immediate next delta
+5. `/PROJECT_HANDOVER_2026-03-03.md` for the concise current repo-state handover
+
+Historical or superseded materials should only be consulted after the files above.
+
 ## Stack
 - Web: Next.js (App Router) + TypeScript
 - API: NestJS + TypeScript
@@ -14,6 +24,7 @@ This is a starter scaffold aligned to the documentation pack.
 1. Install Node.js 20+.
 2. From repo root:
    - `npm install`
+   - `npm run db:migrate`
    - `docker compose up --build -d`
 
 Web: http://localhost:3000  
@@ -27,10 +38,15 @@ Copy env files:
 ## Notes
 - This is a minimal skeleton. Modules/controllers are placeholders so Codex/Claude Code can fill in.
 - Multi-tenancy enforced by `organisationId` in schema and request scoping (to be implemented).
+- Canonical docs map: `/docs/PIVOT_INDEX.md`
 - Canonical pivot roadmap: `/PubLeague_Program_Schedule_Roadmap_v1.md`
 - Latest status + next action: `/CHATGPT_NEXT_STEP_NOTE.md`
+- Current repo-state handover: `/PROJECT_HANDOVER_2026-03-03.md`
 - Runtime note: Docker compose now defines `postgres`, `redis`, `api`, and `web`.
 - API container startup runs `prisma migrate deploy` before boot.
+- Local migration commands:
+  - `npm run db:migrate` applies committed migrations non-interactively
+  - `npm run db:migrate:create -- --name <slug>` creates a new development migration
 - Verification note: live `docker compose` validation completed on 2026-03-02 with healthy `postgres`, `redis`, `api`, and `web` services.
 - Container smoke command: `npm run smoke:containers`
 - Container smoke behavior:

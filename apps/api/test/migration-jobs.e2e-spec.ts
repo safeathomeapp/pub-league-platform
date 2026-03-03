@@ -95,6 +95,54 @@ describe('migration jobs (e2e)', () => {
       .send({ confirm: true })
       .expect(409);
 
+    const invalidReviewed = await api(app)
+      .patch(`/api/v1/orgs/${orgAId}/migration-jobs/${jobId}/review`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        readyToImport: true,
+        draft: {
+          league: { name: '', sport: 'pool', rulesetId: ruleset.id },
+          season: {
+            name: 'Imported Season',
+            startDate: 'not-a-date',
+            endDate: '2026-12-31T00:00:00.000Z',
+          },
+          divisions: [{ tempId: 'div-1', name: 'Premier' }],
+          teams: [{ tempId: 'team-1', divisionTempId: 'missing-division', name: 'Breakers' }],
+          players: [{ displayName: 'Alice Example' }, { displayName: 'Bob Example', contactEmail: 'alice@example.com' }, { displayName: 'Carol Example', contactEmail: 'alice@example.com' }],
+          fixtures: [
+            {
+              divisionTempId: 'div-1',
+              homeTeamTempId: 'team-1',
+              awayTeamTempId: 'team-1',
+              scheduledAt: 'bad-date',
+            },
+          ],
+        },
+      })
+      .expect(200);
+
+    expect(invalidReviewed.body.status).toBe(MigrationJobStatus.REVIEW_REQUIRED);
+    expect(invalidReviewed.body.validationSummary.valid).toBe(false);
+    expect(invalidReviewed.body.validationSummary.errorCount).toBeGreaterThan(0);
+    expect(invalidReviewed.body.importPreviewSummary.counts.divisions).toBe(1);
+    expect(invalidReviewed.body.importPreviewSummary.fixturePairs[0]).toBe('Breakers vs Breakers');
+
+    const invalidDetail = await api(app)
+      .get(`/api/v1/orgs/${orgAId}/migration-jobs/${jobId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(invalidDetail.body.validationSummary.valid).toBe(false);
+    expect(invalidDetail.body.validationSummary.errors.some((issue: any) => issue.path === 'draft.league.name')).toBe(true);
+    expect(invalidDetail.body.importPreviewSummary.counts.teams).toBe(1);
+
+    const invalidImport = await api(app)
+      .post(`/api/v1/orgs/${orgAId}/migration-jobs/${jobId}/import`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ confirm: true })
+      .expect(409);
+    expect(invalidImport.body.error.message).toContain('not ready');
+
     const reviewed = await api(app)
       .patch(`/api/v1/orgs/${orgAId}/migration-jobs/${jobId}/review`)
       .set('Authorization', `Bearer ${adminToken}`)
@@ -126,6 +174,10 @@ describe('migration jobs (e2e)', () => {
       .expect(200);
 
     expect(reviewed.body.status).toBe(MigrationJobStatus.READY_TO_IMPORT);
+    expect(reviewed.body.validationSummary.valid).toBe(true);
+    expect(reviewed.body.importPreviewSummary.leagueName).toBe('Imported League');
+    expect(reviewed.body.importPreviewSummary.counts.teams).toBe(2);
+    expect(reviewed.body.importPreviewSummary.fixturePairs[0]).toBe('Breakers vs Cue Masters');
 
     const imported = await api(app)
       .post(`/api/v1/orgs/${orgAId}/migration-jobs/${jobId}/import`)
@@ -140,6 +192,8 @@ describe('migration jobs (e2e)', () => {
     expect(imported.body.summary.counts.fixtures).toBe(1);
     expect(imported.body.job.status).toBe(MigrationJobStatus.IMPORTED);
     expect(imported.body.job.importAudits).toHaveLength(1);
+    expect(imported.body.job.importAudits[0].summaryJson.counts.teams).toBe(2);
+    expect(imported.body.job.importAudits[0].summaryJson.counts.fixtures).toBe(1);
 
     await api(app)
       .post(`/api/v1/orgs/${orgAId}/migration-jobs/${jobId}/import`)

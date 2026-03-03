@@ -5,6 +5,12 @@ Generated: 2026-02-12
 - [PIVOT_INDEX.md](PIVOT_INDEX.md) (current canonical docs + latest session truth set)
 - [27-Deep-Code-Audit-2026-02-24.md](27-Deep-Code-Audit-2026-02-24.md) (current state and prioritized findings)
 
+Current reading order for active work:
+1. `../README.md`
+2. `PIVOT_INDEX.md`
+3. `../PubLeague_Program_Schedule_Roadmap_v1.md`
+4. `../CHATGPT_NEXT_STEP_NOTE.md`
+
 ## Legacy ordered pack (historical reference)
 This pack is ordered. Read top to bottom.
 

@@ -14,6 +14,7 @@ Generated: 2026-02-12
 - rulesets
 - seasons
 - divisions
+- venues
 - teams
 - players (domain profile; may align 1:1 with users later)
 - team_players
@@ -29,6 +30,8 @@ Generated: 2026-02-12
 ## Key constraints
 1) Every table must contain organisation_id unless it is globally shared (rulesets may be global templates, but safer to tenant-scope early).
 2) Fixture belongs to a division; division belongs to season; season belongs to league; league belongs to organisation.
+2a) Venue belongs to an organisation; team may reference an org-scoped venue.
+2b) Season carries baseline competition policy fields for organiser-controlled match constraints.
 3) match_event_log entries must be strictly revisioned per fixture:
    - unique (fixture_id, revision)
    - revision increments by 1 (enforced at service layer with optimistic concurrency)
@@ -57,7 +60,9 @@ Generated: 2026-02-12
 - leagues(org_id)
 - seasons(league_id)
 - divisions(season_id)
+- venues(organisation_id, created_at)
 - teams(division_id)
+- teams(venue_id)
 - fixtures(division_id, scheduled_at)
 - match_event_log(fixture_id, revision) unique
 - match_event_log(fixture_id, timestamp)
@@ -69,3 +74,26 @@ MVP can keep:
 - players: domain entities with phone/email for reminders
 
 Later you can unify or link 1:1.
+
+## Venue baseline
+Current venue fields:
+- name
+- pool_tables
+- darts_boards
+
+Current baseline behavior:
+- venue is an org-scoped operational entity
+- team may have a nullable venue reference
+- fixture generation currently emits warning-level venue capacity signals rather than full venue-aware scheduling
+
+## Competition policy baseline
+Current season-level policy fields:
+- minimum_players_per_match
+- hide_orders_until_both_submitted
+- prevent_same_team_opponent_repeat_same_night
+- require_match_signoff_on_night
+
+Current baseline behavior:
+- organiser can read and update these fields through season endpoints
+- current live enforcement is limited to `minimum_players_per_match`
+- enforcement currently uses season roster counts as the legal-match baseline, not night-of attendance tracking

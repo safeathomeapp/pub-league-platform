@@ -1,5 +1,5 @@
 # 29 Milestone 9 Contract - Legacy Migration Assistant
-Updated: 2026-03-02
+Updated: 2026-03-03
 
 This document defines the minimal implementation contract for Milestone 9.
 
@@ -89,6 +89,36 @@ Minimum draft sections:
 - player rows
 - fixture rows
 
+### MigrationDraftValidationSummary
+Returned on job detail and review responses.
+Required fields:
+- `valid`
+- `errorCount`
+- `warningCount`
+- `errors[]` with:
+  - `code`
+  - `message`
+  - `path`
+- `warnings[]` with:
+  - `code`
+  - `message`
+  - `path`
+
+### MigrationImportPreviewSummary
+Returned on job detail and review responses.
+Required fields:
+- `leagueName`
+- `seasonName`
+- `divisionNames[]`
+- `teamNames[]`
+- `playerDisplayNames[]`
+- `fixturePairs[]`
+- `counts` with:
+  - `divisions`
+  - `teams`
+  - `players`
+  - `fixtures`
+
 ### MigrationImportAudit
 Required fields:
 - `id`
@@ -97,6 +127,11 @@ Required fields:
 - `actorUserId`
 - `summaryJson`
 - `createdAt`
+
+Minimum surfaced summary fields:
+- actor identity
+- audit timestamp
+- imported entity counts from `summaryJson.counts`
 
 ## 5) Endpoint Contract
 ### POST `/api/v1/orgs/:orgId/migration-jobs`
@@ -118,6 +153,9 @@ Behavior:
 ### GET `/api/v1/orgs/:orgId/migration-jobs/:jobId`
 Behavior:
 - returns job metadata, assets, current review status, and draft structured data
+- returns deterministic validation summary for the current draft
+- returns deterministic import preview summary for the current draft
+- returns prior import audit entries for post-import visibility
 
 ### GET `/api/v1/orgs/:orgId/migration-jobs/:jobId/assets/:assetId`
 Behavior:
@@ -129,6 +167,8 @@ Behavior:
 Behavior:
 - admin updates reviewed draft data
 - may move job from `REVIEW_REQUIRED` to `READY_TO_IMPORT`
+- response returns validation summary and import preview summary for the reviewed draft
+- invalid reviewed draft must remain `REVIEW_REQUIRED`
 
 ### POST `/api/v1/orgs/:orgId/migration-jobs/:jobId/import`
 Behavior:
@@ -136,6 +176,7 @@ Behavior:
 - imports reviewed data into domain tables
 - writes `MigrationImportAudit`
 - marks job `IMPORTED`
+- response includes updated job detail with the recorded import audit
 
 Import rule:
 - no import occurs unless this endpoint is called successfully
@@ -143,10 +184,15 @@ Import rule:
 ## 6) Validation and Safety Rules
 - every query is org-scoped
 - uploaded assets are linked only to their owning org job
+- reviewed draft must produce a deterministic validation summary
+- reviewed draft must produce a deterministic import preview summary
+- blocking validation errors must be surfaced before import
 - import endpoint must reject jobs not in `READY_TO_IMPORT`
+- import endpoint must also reject reviewed draft data with blocking validation errors
 - import writes must be deterministic and transactional
 - duplicate import attempts for the same job must be rejected with conflict
 - failures must surface on the job record; silent failure is unacceptable
+- post-import audit visibility must not depend on reading raw JSON manually in the admin UI
 
 ## 7) Web Route Contract
 ### `/migration-assistant`
@@ -164,8 +210,25 @@ Behavior:
 - upload a new source file
 - open an uploaded source asset for review
 - edit reviewed draft fields
+- apply fixed starter draft templates in the local editor
+- format local draft JSON in the editor
 - display job status and failure state
+- display validation errors and warnings before import
+- display deterministic import preview counts and labels before import
+- display prior import audit entries when they exist
+- display local unsaved-change warning state when the draft editor is dirty
+- clear local ready-to-import state when the draft editor becomes dirty
 - import only after explicit confirmation
+
+Template rule:
+- starter templates are local review helpers only
+- template application must not auto-save review state or mark a job ready to import
+
+Editor guard rule:
+- draft formatting and parse-error handling are local editor helpers only
+- local parse errors must be surfaced before save attempts hit the API
+- local unsaved changes must block import until the review is saved or reloaded
+- local draft edits must clear ready state until the user explicitly re-confirms after save
 
 ## 8) Test Contract
 API e2e minimum:
@@ -173,16 +236,26 @@ API e2e minimum:
 2. non-member or wrong-org actor cannot read another org's jobs
 3. authorised org admin can fetch an uploaded asset for the job
 4. wrong-org or missing asset access is rejected correctly
-5. reviewed job can be moved to `READY_TO_IMPORT`
-6. import endpoint rejects non-ready jobs
-7. successful import writes audit row and marks job imported
-8. repeated import attempt returns conflict
+5. invalid reviewed draft returns validation summary and remains `REVIEW_REQUIRED`
+6. job detail and review return deterministic import preview summary
+7. reviewed valid job can be moved to `READY_TO_IMPORT`
+8. import endpoint rejects non-ready jobs and invalid reviewed draft data
+9. successful import writes audit row and marks job imported
+10. repeated import attempt returns conflict
+11. imported job detail exposes import audit summary counts for admin visibility
 
 Web checks minimum:
 1. `apps/web` typecheck passes
 2. `apps/web` build passes
 3. review page handles upload/read/import errors without losing current job context
 4. review page exposes uploaded asset access when assets exist
+5. review page renders validation summary before import
+6. review page renders import preview summary before import
+7. review page renders import audit history after import
+8. review page renders fixed starter draft template actions
+9. review page renders local draft-format action and parse-error messaging
+10. review page renders unsaved-change warning state and blocks import while dirty
+11. review page clears local ready state when the draft changes
 
 ## 9) Acceptance Criteria
 Milestone 9 minimal slice is done when:

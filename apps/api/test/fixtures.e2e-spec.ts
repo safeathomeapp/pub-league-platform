@@ -117,25 +117,24 @@ describe('fixtures (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         scheduledAt: '2026-04-15T19:30:00.000Z',
-        status: 'in_progress',
+        state: 'IN_PROGRESS',
       })
       .expect(200);
-    expect(patched.body.status).toBe('in_progress');
     expect(patched.body.state).toBe('IN_PROGRESS');
     expect(patched.body.scheduledAt).toBe('2026-04-15T19:30:00.000Z');
 
     await api(app)
       .patch(`/api/v1/orgs/${orgId}/fixtures/${targetFixtureId}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ status: 'completed' })
+      .send({ state: 'LOCKED' })
       .expect(409);
 
-    const filteredByStatus = await api(app)
-      .get(`/api/v1/orgs/${orgId}/divisions/${division.id}/fixtures?status=in_progress`)
+    const filteredByState = await api(app)
+      .get(`/api/v1/orgs/${orgId}/divisions/${division.id}/fixtures?state=IN_PROGRESS`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    expect(filteredByStatus.body).toHaveLength(1);
-    expect(filteredByStatus.body[0].id).toBe(targetFixtureId);
+    expect(filteredByState.body).toHaveLength(1);
+    expect(filteredByState.body[0].id).toBe(targetFixtureId);
 
     const filteredByDate = await api(app)
       .get(`/api/v1/orgs/${orgId}/divisions/${division.id}/fixtures?from=2026-04-15T00:00:00.000Z&to=2026-04-15T23:59:59.000Z`)
@@ -151,5 +150,71 @@ describe('fixtures (e2e)', () => {
 
     const fixtureCount = await prisma.fixture.count({ where: { divisionId: division.id } });
     expect(fixtureCount).toBe(6);
+  });
+
+  it('returns venue capacity warnings when assigned home venues exceed sport capacity baseline', async () => {
+    const email = `fixture_capacity_${Date.now()}@example.com`;
+    const password = 'password1234';
+
+    const reg = await api(app).post('/api/v1/auth/register').send({ email, password }).expect(201);
+    const token = reg.body.accessToken;
+
+    const org = await api(app).post('/api/v1/orgs').set('Authorization', `Bearer ${token}`).send({ name: 'Capacity Org' }).expect(201);
+    const orgId = org.body.id;
+
+    const ruleset = await prisma.ruleset.create({
+      data: {
+        organisationId: orgId,
+        name: 'Capacity Ruleset',
+        sport: 'pool',
+        config: { points_model: { win: 2, loss: 0 } },
+      },
+    });
+
+    const league = await prisma.league.create({
+      data: {
+        organisationId: orgId,
+        name: 'Capacity League',
+        sport: 'pool',
+        rulesetId: ruleset.id,
+      },
+    });
+
+    const season = await prisma.season.create({
+      data: {
+        leagueId: league.id,
+        name: 'Capacity Season',
+        startDate: new Date('2026-01-01T00:00:00.000Z'),
+        endDate: new Date('2026-12-31T00:00:00.000Z'),
+      },
+    });
+
+    const division = await prisma.division.create({
+      data: { seasonId: season.id, name: 'Division Capacity' },
+    });
+
+    const venue = await api(app)
+      .post(`/api/v1/orgs/${orgId}/venues`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Busy Venue', poolTables: 2, dartsBoards: 1 })
+      .expect(201);
+
+    await prisma.$transaction([
+      prisma.team.create({ data: { divisionId: division.id, name: 'Team A', venueId: venue.body.id } }),
+      prisma.team.create({ data: { divisionId: division.id, name: 'Team B', venueId: venue.body.id } }),
+      prisma.team.create({ data: { divisionId: division.id, name: 'Team C', venueId: venue.body.id } }),
+    ]);
+
+    const generate = await api(app)
+      .post(`/api/v1/orgs/${orgId}/divisions/${division.id}/fixtures:generate`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+
+    expect(generate.body.createdCount).toBe(3);
+    expect(generate.body.capacityWarnings).toHaveLength(1);
+    expect(generate.body.capacityWarnings[0].venueId).toBe(venue.body.id);
+    expect(generate.body.capacityWarnings[0].capacity).toBe(2);
+    expect(generate.body.capacityWarnings[0].teamCount).toBe(3);
+    expect(generate.body.capacityWarnings[0].message).toContain('Busy Venue');
   });
 });

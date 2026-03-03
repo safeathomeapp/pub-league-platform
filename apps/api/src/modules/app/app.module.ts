@@ -20,6 +20,7 @@ import { StatsModule } from '../stats/stats.module';
 import { SponsorsModule } from '../sponsors/sponsors.module';
 import { TvModule } from '../tv/tv.module';
 import { MigrationJobsModule } from '../migration-jobs/migration-jobs.module';
+import { VenuesModule } from '../venues/venues.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from '../../common/middleware/request-id.middleware';
 
@@ -46,6 +47,7 @@ import { RequestIdMiddleware } from '../../common/middleware/request-id.middlewa
     SponsorsModule,
     TvModule,
     MigrationJobsModule,
+    VenuesModule,
   ],
   controllers: [HealthController],
 })

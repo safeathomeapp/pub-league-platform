@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { FixtureState, FixtureStatus } from '@prisma/client';
+import { FixtureState, Sport } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 import { GenerateRoundRobinResponseDto } from './dto/generate-round-robin-response.dto';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -20,7 +20,8 @@ export class FixturesService {
     const division = await this.prisma.division.findUnique({
       where: { id: divisionId },
       include: {
-        teams: { orderBy: { id: 'asc' } },
+        season: { include: { league: { select: { sport: true } } } },
+        teams: { include: { venue: true }, orderBy: { id: 'asc' } },
         fixtures: { select: { homeTeamId: true, awayTeamId: true } },
       },
     });
@@ -30,6 +31,13 @@ export class FixturesService {
 
     const existingPairs = new Set(
       division.fixtures.map(fixture => this.pairKey(fixture.homeTeamId, fixture.awayTeamId)),
+    );
+    const capacityWarnings = this.buildVenueCapacityWarnings(
+      division.teams.map(team => ({
+        id: team.id,
+        venue: team.venue,
+      })),
+      division.season.league.sport,
     );
 
     const fixturesToCreate: Array<{ divisionId: string; homeTeamId: string; awayTeamId: string; scheduledAt: null }> =
@@ -47,7 +55,7 @@ export class FixturesService {
     }
 
     if (fixturesToCreate.length === 0) {
-      return { createdCount: 0, fixtures: [] };
+      return { createdCount: 0, capacityWarnings, fixtures: [] };
     }
 
     const fixtures = await this.prisma.$transaction(
@@ -56,13 +64,14 @@ export class FixturesService {
 
     return {
       createdCount: fixtures.length,
+      capacityWarnings,
       fixtures: fixtures.map(fixture => ({
         id: fixture.id,
         divisionId: fixture.divisionId,
         homeTeamId: fixture.homeTeamId,
         awayTeamId: fixture.awayTeamId,
         scheduledAt: fixture.scheduledAt ? fixture.scheduledAt.toISOString() : null,
-        status: fixture.status,
+        state: fixture.state,
       })),
     };
   }
@@ -70,7 +79,7 @@ export class FixturesService {
   async listForDivision(
     orgId: string,
     divisionId: string,
-    query?: { from?: string; to?: string; status?: FixtureStatus },
+    query?: { from?: string; to?: string; state?: FixtureState },
   ) {
     await this.assertDivisionInOrg(orgId, divisionId);
     const scheduledAt = {
@@ -80,7 +89,7 @@ export class FixturesService {
     return this.prisma.fixture.findMany({
       where: {
         divisionId,
-        ...(query?.status ? { status: query.status } : {}),
+        ...(query?.state ? { state: query.state } : {}),
         ...(Object.keys(scheduledAt).length ? { scheduledAt } : {}),
       },
       include: {
@@ -109,17 +118,17 @@ export class FixturesService {
   async update(
     orgId: string,
     fixtureId: string,
-    data: { scheduledAt?: string; status?: FixtureStatus },
+    data: { scheduledAt?: string; state?: FixtureState },
   ) {
     const existing = await this.getById(orgId, fixtureId);
-    const statusPatch = this.resolveStatusPatch(existing.state, data.status);
+    const statePatch = this.resolveStatePatch(existing.state, data.state);
 
     // Restrict patch behavior to explicit fields to avoid accidental model drift.
     const updated = await this.prisma.fixture.update({
       where: { id: fixtureId },
       data: {
         ...(data.scheduledAt !== undefined ? { scheduledAt: new Date(data.scheduledAt) } : {}),
-        ...(statusPatch ?? {}),
+        ...(statePatch ?? {}),
       },
       include: {
         homeTeam: true,
@@ -152,27 +161,58 @@ export class FixturesService {
     return teamAId < teamBId ? `${teamAId}:${teamBId}` : `${teamBId}:${teamAId}`;
   }
 
-  private resolveStatusPatch(
-    currentState: FixtureState,
-    nextStatus?: FixtureStatus,
-  ): { status: FixtureStatus; state: FixtureState } | undefined {
-    if (nextStatus === undefined) return undefined;
+  private buildVenueCapacityWarnings(
+    teams: Array<{ id: string; venue: { id: string; name: string; poolTables: number; dartsBoards: number } | null }>,
+    sport: Sport,
+  ) {
+    const teamCountsByVenue = new Map<string, { venueId: string; venueName: string; teamCount: number; capacity: number }>();
 
-    if (nextStatus === FixtureStatus.completed) {
-      throw new ConflictException('Use governed match result flows to lock/complete fixtures');
+    for (const team of teams) {
+      if (!team.venue) continue;
+      const capacity = sport === Sport.darts ? team.venue.dartsBoards : team.venue.poolTables;
+      const existing = teamCountsByVenue.get(team.venue.id);
+      if (existing) {
+        existing.teamCount += 1;
+        continue;
+      }
+      teamCountsByVenue.set(team.venue.id, {
+        venueId: team.venue.id,
+        venueName: team.venue.name,
+        teamCount: 1,
+        capacity,
+      });
     }
+
+    return Array.from(teamCountsByVenue.values())
+      .filter(item => item.teamCount > item.capacity)
+      .map(item => ({
+        venueId: item.venueId,
+        venueName: item.venueName,
+        sport,
+        teamCount: item.teamCount,
+        capacity: item.capacity,
+        message: `Venue ${item.venueName} has ${item.teamCount} assigned teams for ${sport} but only capacity ${item.capacity}`,
+      }));
+  }
+
+  private resolveStatePatch(
+    currentState: FixtureState,
+    nextState?: FixtureState,
+  ): { state: FixtureState } | undefined {
+    if (nextState === undefined) return undefined;
 
     if (
       currentState === FixtureState.AWAITING_OPPONENT
       || currentState === FixtureState.DISPUTED
       || currentState === FixtureState.LOCKED
     ) {
-      throw new ConflictException('Fixture status cannot be patched from governed states');
+      throw new ConflictException('Fixture state cannot be patched from governed states');
     }
 
-    if (nextStatus === FixtureStatus.scheduled) {
-      return { status: FixtureStatus.scheduled, state: FixtureState.SCHEDULED };
+    if (nextState !== FixtureState.SCHEDULED && nextState !== FixtureState.IN_PROGRESS) {
+      throw new ConflictException('Use governed match result flows for fixture lifecycle transitions');
     }
-    return { status: FixtureStatus.in_progress, state: FixtureState.IN_PROGRESS };
+
+    return { state: nextState };
   }
 }

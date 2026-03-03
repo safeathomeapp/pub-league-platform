@@ -1,4 +1,6 @@
-import { IsDateString, IsString, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsDateString, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
+import { CompetitionPolicyDto } from './competition-policy.dto';
 
 export class CreateSeasonDto {
   @IsString()
@@ -10,4 +12,9 @@ export class CreateSeasonDto {
 
   @IsDateString()
   endDate!: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CompetitionPolicyDto)
+  competitionPolicy?: CompetitionPolicyDto;
 }

@@ -1,4 +1,4 @@
-import { FixtureStatus } from '@prisma/client';
+import { FixtureState } from '@prisma/client';
 import { IsDateString, IsEnum, IsOptional } from 'class-validator';
 
 export class ListFixturesQueryDto {
@@ -11,6 +11,6 @@ export class ListFixturesQueryDto {
   to?: string;
 
   @IsOptional()
-  @IsEnum(FixtureStatus)
-  status?: FixtureStatus;
+  @IsEnum(FixtureState)
+  state?: FixtureState;
 }

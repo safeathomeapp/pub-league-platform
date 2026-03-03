@@ -7,6 +7,35 @@ export type MigrationJobSummary = {
   createdAt: string;
 };
 
+export type MigrationValidationIssue = {
+  code: string;
+  message: string;
+  path: string;
+};
+
+export type MigrationValidationSummary = {
+  valid: boolean;
+  errorCount: number;
+  warningCount: number;
+  errors: MigrationValidationIssue[];
+  warnings: MigrationValidationIssue[];
+};
+
+export type MigrationImportPreviewSummary = {
+  leagueName: string;
+  seasonName: string;
+  divisionNames: string[];
+  teamNames: string[];
+  playerDisplayNames: string[];
+  fixturePairs: string[];
+  counts: {
+    divisions: number;
+    teams: number;
+    players: number;
+    fixtures: number;
+  };
+};
+
 export type MigrationDraft = {
   league: { name: string; sport: string; rulesetId: string };
   season: { name: string; startDate: string; endDate: string };
@@ -21,10 +50,34 @@ export type MigrationDraft = {
   }>;
 };
 
+export type MigrationDraftTemplate = {
+  id: string;
+  label: string;
+  description: string;
+  draft: MigrationDraft;
+};
+
 export type MigrationJobDetail = MigrationJobSummary & {
   draft: MigrationDraft;
   assets: Array<{ id: string; originalFilename: string; mimeType: string }>;
+  importAudits: Array<{
+    id: string;
+    actorUserId: string;
+    createdAt: string;
+    summaryJson: {
+      leagueId?: string;
+      seasonId?: string;
+      counts?: {
+        divisions?: number;
+        teams?: number;
+        players?: number;
+        fixtures?: number;
+      };
+    } | null;
+  }>;
   failureReason?: string | null;
+  validationSummary?: MigrationValidationSummary;
+  importPreviewSummary?: MigrationImportPreviewSummary;
 };
 
 type Props = {
@@ -34,6 +87,8 @@ type Props = {
   jobs: MigrationJobSummary[];
   selectedJobId: string;
   draftText: string;
+  draftParseError: string | null;
+  hasUnsavedChanges: boolean;
   readyToImport: boolean;
   selectedJob: MigrationJobDetail | null;
   sourceType: string;
@@ -41,6 +96,8 @@ type Props = {
   onLoadJobs: () => void;
   onSelectJob: (value: string) => void;
   onDraftTextChange: (value: string) => void;
+  onApplyDraftTemplate: (templateId: string) => void;
+  onFormatDraft: () => void;
   onReadyToImportChange: (value: boolean) => void;
   onCreateJob: () => void;
   onSaveReview: () => void;
@@ -61,6 +118,47 @@ export function emptyMigrationDraft(): MigrationDraft {
   };
 }
 
+export function migrationDraftTemplates(): MigrationDraftTemplate[] {
+  return [
+    {
+      id: 'blank',
+      label: 'Blank shell',
+      description: 'Reset to an empty draft with the required top-level sections.',
+      draft: emptyMigrationDraft(),
+    },
+    {
+      id: 'pool-minimal',
+      label: 'Pool minimal',
+      description: 'One division, two teams, two players, and one fixture for a thin starting point.',
+      draft: {
+        league: { name: 'Imported Pool League', sport: 'pool', rulesetId: '' },
+        season: {
+          name: '2026 Summer Season',
+          startDate: '2026-04-01T19:30:00.000Z',
+          endDate: '2026-08-31T19:30:00.000Z',
+        },
+        divisions: [{ tempId: 'div-premier', name: 'Premier' }],
+        teams: [
+          { tempId: 'team-breakers', divisionTempId: 'div-premier', name: 'Breakers' },
+          { tempId: 'team-cue-masters', divisionTempId: 'div-premier', name: 'Cue Masters' },
+        ],
+        players: [
+          { displayName: 'Alice Example', contactEmail: 'alice@example.com', contactPhone: '' },
+          { displayName: 'Bob Example', contactEmail: 'bob@example.com', contactPhone: '' },
+        ],
+        fixtures: [
+          {
+            divisionTempId: 'div-premier',
+            homeTeamTempId: 'team-breakers',
+            awayTeamTempId: 'team-cue-masters',
+            scheduledAt: '2026-04-10T19:30:00.000Z',
+          },
+        ],
+      },
+    },
+  ];
+}
+
 export function MigrationAssistantView(props: Props) {
   const {
     orgId,
@@ -69,10 +167,13 @@ export function MigrationAssistantView(props: Props) {
     jobs,
     selectedJobId,
     draftText,
+    draftParseError,
+    hasUnsavedChanges,
     readyToImport,
     selectedJob,
     sourceType,
   } = props;
+  const draftTemplates = migrationDraftTemplates();
 
   return (
     <main style={{ padding: 20 }}>
@@ -144,6 +245,67 @@ export function MigrationAssistantView(props: Props) {
               </p>
               <p>Status: <strong>{selectedJob.status}</strong></p>
               {selectedJob.failureReason ? <p style={{ color: 'crimson' }}>Failure: {selectedJob.failureReason}</p> : null}
+              {selectedJob.validationSummary ? (
+                <>
+                  <h3>Validation summary</h3>
+                  <p>
+                    Valid: <strong>{selectedJob.validationSummary.valid ? 'yes' : 'no'}</strong> | Errors:{' '}
+                    <strong>{selectedJob.validationSummary.errorCount}</strong> | Warnings:{' '}
+                    <strong>{selectedJob.validationSummary.warningCount}</strong>
+                  </p>
+                  {selectedJob.validationSummary.errors.length > 0 ? (
+                    <>
+                      <h4>Blocking errors</h4>
+                      <ul style={{ paddingLeft: 18 }}>
+                        {selectedJob.validationSummary.errors.map(issue => (
+                          <li key={`${issue.code}-${issue.path}`}>
+                            {issue.message} ({issue.path})
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                  {selectedJob.validationSummary.warnings.length > 0 ? (
+                    <>
+                      <h4>Warnings</h4>
+                      <ul style={{ paddingLeft: 18 }}>
+                        {selectedJob.validationSummary.warnings.map(issue => (
+                          <li key={`${issue.code}-${issue.path}`}>
+                            {issue.message} ({issue.path})
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                </>
+              ) : null}
+              {selectedJob.importPreviewSummary ? (
+                <>
+                  <h3>Import preview</h3>
+                  <p>
+                    League: <strong>{selectedJob.importPreviewSummary.leagueName || 'Unspecified'}</strong> | Season:{' '}
+                    <strong>{selectedJob.importPreviewSummary.seasonName || 'Unspecified'}</strong>
+                  </p>
+                  <p>
+                    Divisions: <strong>{selectedJob.importPreviewSummary.counts.divisions}</strong> | Teams:{' '}
+                    <strong>{selectedJob.importPreviewSummary.counts.teams}</strong> | Players:{' '}
+                    <strong>{selectedJob.importPreviewSummary.counts.players}</strong> | Fixtures:{' '}
+                    <strong>{selectedJob.importPreviewSummary.counts.fixtures}</strong>
+                  </p>
+                  {selectedJob.importPreviewSummary.divisionNames.length > 0 ? (
+                    <p>Divisions: {selectedJob.importPreviewSummary.divisionNames.join(', ')}</p>
+                  ) : null}
+                  {selectedJob.importPreviewSummary.teamNames.length > 0 ? (
+                    <p>Teams: {selectedJob.importPreviewSummary.teamNames.join(', ')}</p>
+                  ) : null}
+                  {selectedJob.importPreviewSummary.playerDisplayNames.length > 0 ? (
+                    <p>Players: {selectedJob.importPreviewSummary.playerDisplayNames.join(', ')}</p>
+                  ) : null}
+                  {selectedJob.importPreviewSummary.fixturePairs.length > 0 ? (
+                    <p>Fixtures: {selectedJob.importPreviewSummary.fixturePairs.join('; ')}</p>
+                  ) : null}
+                </>
+              ) : null}
 
               <h3>Assets</h3>
               <ul style={{ paddingLeft: 18 }}>
@@ -157,7 +319,48 @@ export function MigrationAssistantView(props: Props) {
                 ))}
               </ul>
 
+              <h3>Import audits</h3>
+              {selectedJob.importAudits.length === 0 ? <p>No import audits recorded.</p> : null}
+              {selectedJob.importAudits.length > 0 ? (
+                <ul style={{ paddingLeft: 18 }}>
+                  {selectedJob.importAudits.map(audit => (
+                    <li key={audit.id}>
+                      {audit.createdAt}: actor {audit.actorUserId} imported divisions{' '}
+                      {audit.summaryJson?.counts?.divisions ?? 0}, teams {audit.summaryJson?.counts?.teams ?? 0},
+                      players {audit.summaryJson?.counts?.players ?? 0}, fixtures{' '}
+                      {audit.summaryJson?.counts?.fixtures ?? 0}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
               <label htmlFor="draftText">Draft JSON</label>
+              <div style={rowStyle}>
+                {draftTemplates.map(template => (
+                  <button key={template.id} type="button" onClick={() => props.onApplyDraftTemplate(template.id)}>
+                    Use template: {template.label}
+                  </button>
+                ))}
+              </div>
+              <p style={{ marginTop: 8 }}>
+                {draftTemplates.map(template => `${template.label}: ${template.description}`).join(' | ')}
+              </p>
+              <div style={rowStyle}>
+                <button type="button" onClick={props.onFormatDraft}>
+                  Format draft JSON
+                </button>
+              </div>
+              {draftParseError ? <p style={{ color: 'crimson' }}>{draftParseError}</p> : null}
+              {hasUnsavedChanges ? (
+                <p style={{ color: '#b45309' }}>
+                  You have unsaved draft changes. Save review before switching jobs or importing.
+                </p>
+              ) : null}
+              {hasUnsavedChanges ? (
+                <p style={{ color: '#1d4ed8' }}>
+                  Ready to import is cleared on local edits. Re-check it after saving the reviewed draft.
+                </p>
+              ) : null}
               <textarea
                 id="draftText"
                 value={draftText}
@@ -178,7 +381,16 @@ export function MigrationAssistantView(props: Props) {
                 <button type="button" onClick={props.onSaveReview} disabled={!selectedJobId}>
                   Save review
                 </button>
-                <button type="button" onClick={props.onImportJob} disabled={!selectedJobId || !readyToImport}>
+                <button
+                  type="button"
+                  onClick={props.onImportJob}
+                  disabled={
+                    !selectedJobId
+                    || !readyToImport
+                    || hasUnsavedChanges
+                    || selectedJob.validationSummary?.valid === false
+                  }
+                >
                   Import selected job
                 </button>
               </div>

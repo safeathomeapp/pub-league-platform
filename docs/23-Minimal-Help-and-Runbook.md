@@ -7,9 +7,15 @@ This is a practical quick-start and troubleshooting guide for local demo/beta us
 From repo root:
 
 ```bash
-npm run db:push
+npm run db:migrate
 npm run seed:demo
 npm run dev
+```
+
+For new schema work during development:
+
+```bash
+npm run db:migrate:create -- --name your_change_name
 ```
 
 Default URLs:
@@ -28,7 +34,7 @@ Web shortcut:
 1. Sign in as demo organiser.
 2. Open `Organisations`, then open `Schedule`.
 3. Load seeded division fixtures.
-4. Update fixture schedule/status.
+4. Update fixture schedule/state.
 5. Submit match completion.
 6. Open standings endpoint or standings UI flow.
 7. Confirm notifications outbox entries exist.
@@ -37,7 +43,7 @@ Web shortcut:
 - `/match-night`
   - token issue/transfer/accept
   - frame events
-  - complete match
+  - submit/approve/reject result flow
 - `/disputes`
   - create/list/update disputes
 - `/notifications-admin`
@@ -51,11 +57,15 @@ Web shortcut:
 - Fixtures:
   - `GET /api/v1/orgs/:orgId/divisions/:divisionId/fixtures`
   - `PATCH /api/v1/orgs/:orgId/fixtures/:fixtureId`
+  - fixture lifecycle authority is `state`, not `status`
 - Calendar:
   - `GET /api/v1/orgs/:orgId/calendar/divisions/:divisionId.ics`
   - `GET /api/v1/orgs/:orgId/calendar/teams/:teamId.ics`
 - Match + standings:
   - `POST /api/v1/orgs/:orgId/fixtures/:fixtureId/complete`
+  - `POST /api/v1/orgs/:orgId/fixtures/:fixtureId/submit`
+  - `POST /api/v1/orgs/:orgId/fixtures/:fixtureId/approve`
+  - `POST /api/v1/orgs/:orgId/fixtures/:fixtureId/reject`
   - `GET /api/v1/orgs/:orgId/divisions/:divisionId/standings`
 - Notifications:
   - `GET /api/v1/orgs/:orgId/notifications/outbox`
@@ -83,7 +93,7 @@ Web shortcut:
 
 5. Seed login fails
 - Cause: seed not run or credentials changed.
-- Fix: run `npm run seed:demo` and retry `demo.organiser@publeague.local` / `demo12345`.
+- Fix: run `npm run db:migrate`, then `npm run seed:demo`, and retry `demo.organiser@publeague.local` / `demo12345`.
 
 ## 6) Verification Commands
 ```bash

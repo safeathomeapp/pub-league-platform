@@ -12,12 +12,6 @@ enum Sport {
   darts
 }
 
-enum FixtureStatus {
-  scheduled
-  in_progress
-  completed
-}
-
 enum FixtureState {
   SCHEDULED
   IN_PROGRESS
@@ -103,6 +97,7 @@ model Organisation {
   leagues     League[]
   memberships OrgMembership[]
   players     Player[]
+  venues      Venue[]
 
   rulesets           Ruleset[]
   notificationOutbox NotificationOutbox[]
@@ -169,6 +164,10 @@ model Season {
   name      String
   startDate DateTime
   endDate   DateTime
+  minimumPlayersPerMatch              Int      @default(1)
+  hideOrdersUntilBothSubmitted        Boolean  @default(false)
+  preventSameTeamOpponentRepeatSameNight Boolean @default(false)
+  requireMatchSignoffOnNight          Boolean  @default(false)
   rosterLockAfterAppearances     Int      @default(1)
   allowMidSeasonTransfers        Boolean  @default(false)
   requireAdminApprovalForTransfer Boolean @default(true)
@@ -195,14 +194,32 @@ model Team {
   id         String @id @default(uuid())
   divisionId String
   name       String
+  venueId    String?
 
   division     Division     @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  venue        Venue?       @relation(fields: [venueId], references: [id], onDelete: SetNull)
   roster       TeamPlayer[]
   homeFixtures Fixture[]    @relation("HomeTeam")
   awayFixtures Fixture[]    @relation("AwayTeam")
   tokens       MatchControlToken[]
   transfersOut RosterTransferAudit[] @relation("RosterTransferFromTeam")
   transfersIn  RosterTransferAudit[] @relation("RosterTransferToTeam")
+
+  @@index([venueId])
+}
+
+model Venue {
+  id             String   @id @default(uuid())
+  organisationId String
+  name           String
+  poolTables     Int      @default(1)
+  dartsBoards    Int      @default(1)
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  teams        Team[]
+
+  @@index([organisationId, createdAt])
 }
 
 model Player {
@@ -241,7 +258,6 @@ model Fixture {
   homeTeamId  String
   awayTeamId  String
   scheduledAt DateTime?
-  status      FixtureStatus @default(scheduled)
   state       FixtureState  @default(SCHEDULED)
 
   division Division @relation(fields: [divisionId], references: [id], onDelete: Cascade)

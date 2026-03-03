@@ -2,20 +2,7 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-
-type Fixture = {
-  id: string;
-  homeTeam: { name: string };
-  awayTeam: { name: string };
-};
-
-type Dispute = {
-  id: string;
-  status: string;
-  reason: string | null;
-  outcome: string | null;
-  createdAt: string;
-};
+import { DisputesView, type DisputeFixture, type DisputeRecord } from './disputes-view';
 
 function DisputesPageContent() {
   const search = useSearchParams();
@@ -24,8 +11,8 @@ function DisputesPageContent() {
   const [orgId, setOrgId] = useState(search.get('orgId') ?? '');
   const [divisionId, setDivisionId] = useState(search.get('divisionId') ?? '');
   const [fixtureId, setFixtureId] = useState(search.get('fixtureId') ?? '');
-  const [fixtures, setFixtures] = useState<Fixture[]>([]);
-  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [fixtures, setFixtures] = useState<DisputeFixture[]>([]);
+  const [disputes, setDisputes] = useState<DisputeRecord[]>([]);
   const [reason, setReason] = useState('');
   const [resolutionStatus, setResolutionStatus] = useState('resolved');
   const [outcome, setOutcome] = useState('');
@@ -125,83 +112,34 @@ function DisputesPageContent() {
   }
 
   return (
-    <main>
-      <h1>Disputes</h1>
-      <p>Create disputes, review status, and resolve with an outcome note.</p>
-      <p>
-        <a href="/orgs">Organisations</a> | <a href="/schedule">Schedule</a> | <a href="/match-night">Match Night</a>
-      </p>
-
-      <form onSubmit={loadFixtures} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-        <input placeholder="orgId" value={orgId} onChange={e => setOrgId(e.target.value)} required />
-        <input placeholder="divisionId" value={divisionId} onChange={e => setDivisionId(e.target.value)} required />
-        <button type="submit">Load fixtures</button>
-      </form>
-
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-        <select
-          value={fixtureId}
-          onChange={e => {
-            const next = e.target.value;
-            setFixtureId(next);
-            void loadDisputes(next);
-          }}
-        >
-          <option value="">Select fixture</option>
-          {fixtures.map(item => (
-            <option key={item.id} value={item.id}>
-              {item.homeTeam.name} vs {item.awayTeam.name}
-            </option>
-          ))}
-        </select>
-        <button type="button" onClick={() => void loadDisputes()} disabled={!fixtureId}>
-          Refresh disputes
-        </button>
-      </div>
-
-      {status ? <p>{status}</p> : null}
-      {error ? <p style={{ color: 'crimson' }}>{error}</p> : null}
-
-      <h2>Create dispute</h2>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <input
-          placeholder="Reason"
-          value={reason}
-          onChange={e => setReason(e.target.value)}
-          style={{ minWidth: 360 }}
-        />
-        <button type="button" onClick={() => void createDispute()} disabled={!fixtureId || reason.length < 3}>
-          Create
-        </button>
-      </div>
-
-      <h2>Current disputes</h2>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <select value={resolutionStatus} onChange={e => setResolutionStatus(e.target.value)}>
-          <option value="under_review">under_review</option>
-          <option value="resolved">resolved</option>
-          <option value="rejected">rejected</option>
-          <option value="open">open</option>
-        </select>
-        <input
-          placeholder="Outcome / resolution note"
-          value={outcome}
-          onChange={e => setOutcome(e.target.value)}
-          style={{ minWidth: 360 }}
-        />
-      </div>
-
-      <ul>
-        {disputes.map(dispute => (
-          <li key={dispute.id} style={{ marginBottom: 8 }}>
-            <strong>{dispute.status}</strong> | {dispute.reason ?? 'No reason'} | {dispute.outcome ?? 'No outcome'}{' '}
-            <button type="button" onClick={() => void resolveDispute(dispute.id)}>
-              Update
-            </button>
-          </li>
-        ))}
-      </ul>
-    </main>
+    <DisputesView
+      orgId={orgId}
+      divisionId={divisionId}
+      fixtureId={fixtureId}
+      fixtures={fixtures}
+      disputes={disputes}
+      reason={reason}
+      resolutionStatus={resolutionStatus}
+      outcome={outcome}
+      status={status}
+      error={error}
+      onOrgIdChange={setOrgId}
+      onDivisionIdChange={setDivisionId}
+      onFixtureIdChange={value => {
+        setFixtureId(value);
+        void loadDisputes(value);
+      }}
+      onReasonChange={setReason}
+      onResolutionStatusChange={setResolutionStatus}
+      onOutcomeChange={setOutcome}
+      onLoadFixtures={event => {
+        event.preventDefault();
+        void loadFixtures();
+      }}
+      onRefreshDisputes={() => void loadDisputes()}
+      onCreateDispute={() => void createDispute()}
+      onResolveDispute={disputeId => void resolveDispute(disputeId)}
+    />
   );
 }
 

@@ -189,7 +189,6 @@ async function upsertFixtures(divisionId: string, teams: Array<{ id: string }>) 
           homeTeamId,
           awayTeamId,
           scheduledAt: new Date(start + offset * 7 * 24 * 60 * 60 * 1000),
-          status: 'scheduled',
         },
       });
       offset += 1;

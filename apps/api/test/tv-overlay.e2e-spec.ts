@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { FixtureState, FixtureStatus, MatchEventType, PrismaClient, SponsorScopeType } from '@prisma/client';
+import { FixtureState, MatchEventType, PrismaClient, SponsorScopeType } from '@prisma/client';
 import { api, bootstrapTestApp } from './test-utils';
 
 describe('tv overlay (e2e)', () => {
@@ -87,7 +87,6 @@ describe('tv overlay (e2e)', () => {
         homeTeamId: homeTeam.id,
         awayTeamId: awayTeam.id,
         scheduledAt: new Date('2026-08-01T19:00:00.000Z'),
-        status: FixtureStatus.in_progress,
         state: FixtureState.IN_PROGRESS,
       },
     });
@@ -98,7 +97,6 @@ describe('tv overlay (e2e)', () => {
         homeTeamId: homeTeam.id,
         awayTeamId: awayTeam.id,
         scheduledAt: new Date('2026-08-10T19:00:00.000Z'),
-        status: FixtureStatus.scheduled,
         state: FixtureState.SCHEDULED,
       },
     });
@@ -109,7 +107,6 @@ describe('tv overlay (e2e)', () => {
         homeTeamId: homeTeam.id,
         awayTeamId: awayTeam.id,
         scheduledAt: new Date('2026-07-15T19:00:00.000Z'),
-        status: FixtureStatus.completed,
         state: FixtureState.LOCKED,
       },
     });
@@ -236,7 +233,6 @@ describe('tv overlay (e2e)', () => {
         awayTeamId: teamB.id,
         scheduledAt: new Date('2026-09-01T19:00:00.000Z'),
         state: FixtureState.SCHEDULED,
-        status: FixtureStatus.scheduled,
       },
     });
 

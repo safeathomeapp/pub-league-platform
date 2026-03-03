@@ -2,58 +2,14 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-
-type TeamPlayer = {
-  id: string;
-  role: string;
-  player: { id: string; displayName: string };
-};
-
-type Team = {
-  id: string;
-  name: string;
-  roster?: TeamPlayer[];
-};
-
-type Fixture = {
-  id: string;
-  homeTeam: Team;
-  awayTeam: Team;
-  state: 'SCHEDULED' | 'IN_PROGRESS' | 'SUBMITTED' | 'AWAITING_OPPONENT' | 'DISPUTED' | 'LOCKED';
-  status: 'scheduled' | 'in_progress' | 'completed';
-};
-
-type MatchEvent = {
-  id: string;
-  revision: number;
-  eventType: string;
-  payload: Record<string, unknown>;
-  createdAt: string;
-};
-
-type MatchToken = {
-  id: string;
-  fixtureId: string;
-  teamId: string;
-  currentHolderPlayerId: string;
-  issuedAt: string;
-  acceptedAt: string | null;
-  revokedAt: string | null;
-};
-
-type Dispute = {
-  id: string;
-  status: string;
-  reason: string | null;
-  outcome: string | null;
-  createdAt: string;
-};
-
-type SubmittedResult = {
-  submittingTeamId: string;
-  homeFrames: number;
-  awayFrames: number;
-} | null;
+import {
+  MatchNightView,
+  type Dispute,
+  type Fixture,
+  type MatchEvent,
+  type MatchToken,
+  type Team,
+} from './match-night-view';
 
 function MatchNightPageContent() {
   const search = useSearchParams();
@@ -81,23 +37,6 @@ function MatchNightPageContent() {
   const [rejectReason, setRejectReason] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const selectedFixture = fixtures.find(item => item.id === fixtureId);
-  const selectedTokens = tokensByFixture[fixtureId] ?? [];
-  const currentRevision = events.length ? Math.max(...events.map(item => item.revision)) : 0;
-  const acceptedTokens = selectedTokens.filter(token => !token.revokedAt && token.acceptedAt);
-  const submittedResult = getLatestSubmittedResult(events);
-  const actingToken = acceptedTokens.find(token => token.currentHolderPlayerId === actingPlayerId);
-  const canSubmit =
-    !!selectedFixture &&
-    !!actingToken &&
-    (selectedFixture.state === 'SCHEDULED' || selectedFixture.state === 'IN_PROGRESS');
-  const canApproveOrReject =
-    !!selectedFixture &&
-    !!actingToken &&
-    selectedFixture.state === 'AWAITING_OPPONENT' &&
-    !!submittedResult &&
-    actingToken.teamId !== submittedResult.submittingTeamId;
 
   async function authFetch(path: string, init?: RequestInit) {
     const token = localStorage.getItem('accessToken');
@@ -152,7 +91,7 @@ function MatchNightPageContent() {
       const initialFixtureId = nextFixtureId || fixtureId || fixtureList[0]?.id || '';
       if (initialFixtureId) {
         setFixtureId(initialFixtureId);
-        await loadFixtureData(initialFixtureId, fixtureList, nextTokenMap);
+        await loadFixtureData(initialFixtureId, fixtureList, nextTokenMap, teamList);
       } else {
         setFixtureId('');
         setEvents([]);
@@ -170,6 +109,7 @@ function MatchNightPageContent() {
     nextFixtureId = fixtureId,
     fixtureList = fixtures,
     tokenMap = tokensByFixture,
+    teamList = teams,
   ) {
     if (!orgId || !nextFixtureId) return;
     setStatus('Loading fixture details...');
@@ -184,12 +124,13 @@ function MatchNightPageContent() {
       const initialTeam = fixture?.homeTeam.id || '';
       setTokenTeamId(initialTeam);
       if (initialTeam) {
-        const rosterPlayers = (teams.find(item => item.id === initialTeam)?.roster ?? []).map(entry => entry.player.id);
+        const rosterPlayers = (teamList.find(item => item.id === initialTeam)?.roster ?? []).map(entry => entry.player.id);
         setHolderPlayerId(rosterPlayers[0] ?? '');
         setTransferToPlayerId(rosterPlayers[1] ?? rosterPlayers[0] ?? '');
         setAcceptPlayerId(rosterPlayers[0] ?? '');
         setWinnerTeamId(fixture?.homeTeam.id ?? '');
       }
+
       const fixtureTokens = tokenMap[nextFixtureId] ?? [];
       const defaultActingToken = fixtureTokens.find(token => !token.revokedAt && token.acceptedAt);
       if (defaultActingToken) setActingPlayerId(defaultActingToken.currentHolderPlayerId);
@@ -229,26 +170,24 @@ function MatchNightPageContent() {
     }
   }
 
-  function teamOptionsForTokenAction() {
-    if (!selectedFixture) return [];
-    return [selectedFixture.homeTeam, selectedFixture.awayTeam];
+  function currentRevision() {
+    return events.length ? Math.max(...events.map(item => item.revision)) : 0;
   }
 
-  function playerOptionsForTeam(teamId: string) {
-    return (teams.find(team => team.id === teamId)?.roster ?? []).map(entry => entry.player);
-  }
-
-  function onLoadSetupSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    void loadSetup();
+  function currentActingToken() {
+    const selectedTokens = tokensByFixture[fixtureId] ?? [];
+    return selectedTokens
+      .filter(token => !token.revokedAt && token.acceptedAt)
+      .find(token => token.currentHolderPlayerId === actingPlayerId);
   }
 
   async function submitResult() {
-    if (!selectedFixture || !actingToken) return;
+    const actingToken = currentActingToken();
+    if (!fixtureId || !actingToken) return;
     await postJson(
-      `/orgs/${orgId}/fixtures/${selectedFixture.id}/submit`,
+      `/orgs/${orgId}/fixtures/${fixtureId}/submit`,
       {
-        expectedRevision: currentRevision,
+        expectedRevision: currentRevision(),
         homeFrames,
         awayFrames,
         teamId: actingToken.teamId,
@@ -260,11 +199,12 @@ function MatchNightPageContent() {
   }
 
   async function approveResult() {
-    if (!selectedFixture || !actingToken) return;
+    const actingToken = currentActingToken();
+    if (!fixtureId || !actingToken) return;
     await postJson(
-      `/orgs/${orgId}/fixtures/${selectedFixture.id}/approve`,
+      `/orgs/${orgId}/fixtures/${fixtureId}/approve`,
       {
-        expectedRevision: currentRevision,
+        expectedRevision: currentRevision(),
         teamId: actingToken.teamId,
         actorPlayerId: actingToken.currentHolderPlayerId,
       },
@@ -273,11 +213,12 @@ function MatchNightPageContent() {
   }
 
   async function rejectResult() {
-    if (!selectedFixture || !actingToken) return;
+    const actingToken = currentActingToken();
+    if (!fixtureId || !actingToken) return;
     await postJson(
-      `/orgs/${orgId}/fixtures/${selectedFixture.id}/reject`,
+      `/orgs/${orgId}/fixtures/${fixtureId}/reject`,
       {
-        expectedRevision: currentRevision,
+        expectedRevision: currentRevision(),
         teamId: actingToken.teamId,
         actorPlayerId: actingToken.currentHolderPlayerId,
         ...(rejectReason.trim() ? { reason: rejectReason.trim() } : {}),
@@ -287,304 +228,100 @@ function MatchNightPageContent() {
     setRejectReason('');
   }
 
-  const requiredAction = getRequiredActionLabel(selectedFixture?.state, canSubmit, canApproveOrReject);
-
   return (
-    <main>
-      <h1>Match Night</h1>
-      <p>Issue/transfer/accept tokens, submit results, and opponent sign-off.</p>
-      <p>
-        <a href="/orgs">Organisations</a> | <a href="/schedule">Schedule</a> | <a href="/disputes">Disputes</a> |{' '}
-        <a href="/notifications-admin">Notifications Admin</a>
-      </p>
-
-      <form onSubmit={onLoadSetupSubmit} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-        <input placeholder="orgId" value={orgId} onChange={e => setOrgId(e.target.value)} required />
-        <input placeholder="divisionId" value={divisionId} onChange={e => setDivisionId(e.target.value)} required />
-        <button type="submit">Load setup</button>
-      </form>
-
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-        <label htmlFor="fixtureId">Fixture</label>
-        <select
-          id="fixtureId"
-          value={fixtureId}
-          onChange={e => {
-            const next = e.target.value;
-            setFixtureId(next);
-            void loadFixtureData(next);
-          }}
-        >
-          <option value="">Select fixture</option>
-          {fixtures.map(item => (
-            <option key={item.id} value={item.id}>
-              {item.homeTeam.name} vs {item.awayTeam.name} ({item.status})
-            </option>
-          ))}
-        </select>
-        <button type="button" onClick={() => void loadFixtureData()} disabled={!fixtureId}>
-          Refresh fixture details
-        </button>
-      </div>
-
-      {status ? <p>{status}</p> : null}
-      {error ? <p style={{ color: 'crimson' }}>{error}</p> : null}
-      {selectedFixture ? (
-        <p>
-          Fixture state: <strong>{selectedFixture.state}</strong> | Required action: <strong>{requiredAction}</strong>
-        </p>
-      ) : null}
-      {me ? <p>Signed in as: {me.email}</p> : null}
-
-      <h2>Token Control</h2>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-        <select value={tokenTeamId} onChange={e => setTokenTeamId(e.target.value)}>
-          <option value="">Select team</option>
-          {teamOptionsForTokenAction().map(team => (
-            <option key={team.id} value={team.id}>
-              {team.name}
-            </option>
-          ))}
-        </select>
-        <select value={holderPlayerId} onChange={e => setHolderPlayerId(e.target.value)}>
-          <option value="">Holder player</option>
-          {playerOptionsForTeam(tokenTeamId).map(player => (
-            <option key={player.id} value={player.id}>{player.displayName}</option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={() =>
-            void postJson(
-              `/orgs/${orgId}/fixtures/${fixtureId}/tokens:issue`,
-              { teamId: tokenTeamId, holderPlayerId },
-              'Token issued',
-            )
-          }
-          disabled={!fixtureId || !tokenTeamId || !holderPlayerId}
-        >
-          Issue
-        </button>
-        <select value={transferToPlayerId} onChange={e => setTransferToPlayerId(e.target.value)}>
-          <option value="">Transfer to</option>
-          {playerOptionsForTeam(tokenTeamId).map(player => (
-            <option key={player.id} value={player.id}>{player.displayName}</option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={() =>
-            void postJson(
-              `/orgs/${orgId}/fixtures/${fixtureId}/tokens:transfer`,
-              { teamId: tokenTeamId, toPlayerId: transferToPlayerId },
-              'Token transferred',
-            )
-          }
-          disabled={!fixtureId || !tokenTeamId || !transferToPlayerId}
-        >
-          Transfer
-        </button>
-        <select value={acceptPlayerId} onChange={e => setAcceptPlayerId(e.target.value)}>
-          <option value="">Accept as</option>
-          {playerOptionsForTeam(tokenTeamId).map(player => (
-            <option key={player.id} value={player.id}>{player.displayName}</option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={() =>
-            void postJson(
-              `/orgs/${orgId}/fixtures/${fixtureId}/tokens:accept`,
-              { teamId: tokenTeamId, playerId: acceptPlayerId },
-              'Token accepted',
-            )
-          }
-          disabled={!fixtureId || !tokenTeamId || !acceptPlayerId}
-        >
-          Accept
-        </button>
-      </div>
-
-      <h3>Active token state</h3>
-      <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(selectedTokens, null, 2)}</pre>
-
-      <h2>Captain Sign-off Workflow</h2>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-        <select value={actingPlayerId} onChange={e => setActingPlayerId(e.target.value)} disabled={!fixtureId}>
-          <option value="">Select acting token holder</option>
-          {acceptedTokens.map(token => {
-            const playerName = teams
-              .flatMap(team => team.roster ?? [])
-              .find(entry => entry.player.id === token.currentHolderPlayerId)?.player.displayName;
-            return (
-              <option key={token.id} value={token.currentHolderPlayerId}>
-                {playerName ?? token.currentHolderPlayerId} (team {token.teamId})
-              </option>
-            );
-          })}
-        </select>
-        <button type="button" onClick={() => setShowSubmitForm(current => !current)} disabled={!canSubmit}>
-          {showSubmitForm ? 'Cancel submit' : 'Submit result'}
-        </button>
-        <button type="button" onClick={() => void approveResult()} disabled={!canApproveOrReject}>
-          Approve
-        </button>
-        <input
-          placeholder="Reject reason (optional)"
-          value={rejectReason}
-          onChange={e => setRejectReason(e.target.value)}
-          style={{ minWidth: 260 }}
-        />
-        <button type="button" onClick={() => void rejectResult()} disabled={!canApproveOrReject}>
-          Reject
-        </button>
-      </div>
-      {showSubmitForm && canSubmit ? (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-          <input
-            type="number"
-            min={0}
-            value={homeFrames}
-            onChange={e => setHomeFrames(Number(e.target.value))}
-            placeholder="Final home frames"
-          />
-          <input
-            type="number"
-            min={0}
-            value={awayFrames}
-            onChange={e => setAwayFrames(Number(e.target.value))}
-            placeholder="Final away frames"
-          />
-          <button type="button" onClick={() => void submitResult()}>
-            Confirm submit
-          </button>
-        </div>
-      ) : null}
-      {submittedResult ? (
-        <p>
-          Latest submitted result: {submittedResult.homeFrames} - {submittedResult.awayFrames} (submitting team{' '}
-          {submittedResult.submittingTeamId})
-        </p>
-      ) : null}
-      {selectedFixture?.state === 'DISPUTED' ? (
-        <>
-          <h3>Dispute status</h3>
-          <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(disputes, null, 2)}</pre>
-        </>
-      ) : null}
-
-      <h2>Event Ledger</h2>
-      <p>Current revision: <strong>{currentRevision}</strong></p>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-        <input
-          type="number"
-          min={1}
-          value={frameNo}
-          onChange={e => setFrameNo(Number(e.target.value))}
-          placeholder="Frame no"
-        />
-        <select value={winnerTeamId} onChange={e => setWinnerTeamId(e.target.value)}>
-          <option value="">Winning team</option>
-          {teamOptionsForTokenAction().map(team => (
-            <option key={team.id} value={team.id}>{team.name}</option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={() =>
-            void postJson(
-              `/orgs/${orgId}/fixtures/${fixtureId}/events`,
-              {
-                eventType: 'FRAME_RECORDED',
-                expectedRevision: currentRevision,
-                payload: { frame_no: frameNo, winner_team_id: winnerTeamId },
-              },
-              'Frame recorded',
-            )
-          }
-          disabled={!fixtureId || !winnerTeamId}
-        >
-          Record frame
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-        <input
-          type="number"
-          min={0}
-          value={homeFrames}
-          onChange={e => setHomeFrames(Number(e.target.value))}
-          placeholder="Home frames"
-        />
-        <input
-          type="number"
-          min={0}
-          value={awayFrames}
-          onChange={e => setAwayFrames(Number(e.target.value))}
-          placeholder="Away frames"
-        />
-        <button
-          type="button"
-          onClick={() =>
-            void postJson(
-              `/orgs/${orgId}/fixtures/${fixtureId}/complete`,
-              {
-                expectedRevision: currentRevision,
-                homeFrames,
-                awayFrames,
-              },
-              'Match completed',
-            )
-          }
-          disabled={!fixtureId}
-        >
-          Complete match
-        </button>
-      </div>
-
-      <h3>Events</h3>
-      <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(events, null, 2)}</pre>
-    </main>
+    <MatchNightView
+      orgId={orgId}
+      divisionId={divisionId}
+      fixtureId={fixtureId}
+      fixtures={fixtures}
+      events={events}
+      tokensByFixture={tokensByFixture}
+      teams={teams}
+      disputes={disputes}
+      me={me}
+      frameNo={frameNo}
+      winnerTeamId={winnerTeamId}
+      homeFrames={homeFrames}
+      awayFrames={awayFrames}
+      tokenTeamId={tokenTeamId}
+      holderPlayerId={holderPlayerId}
+      transferToPlayerId={transferToPlayerId}
+      acceptPlayerId={acceptPlayerId}
+      actingPlayerId={actingPlayerId}
+      showSubmitForm={showSubmitForm}
+      rejectReason={rejectReason}
+      status={status}
+      error={error}
+      onOrgIdChange={setOrgId}
+      onDivisionIdChange={setDivisionId}
+      onFixtureIdChange={value => {
+        setFixtureId(value);
+        void loadFixtureData(value);
+      }}
+      onLoadSetup={event => {
+        event.preventDefault();
+        void loadSetup();
+      }}
+      onRefreshFixture={() => void loadFixtureData()}
+      onTokenTeamIdChange={setTokenTeamId}
+      onHolderPlayerIdChange={setHolderPlayerId}
+      onTransferToPlayerIdChange={setTransferToPlayerId}
+      onAcceptPlayerIdChange={setAcceptPlayerId}
+      onActingPlayerIdChange={setActingPlayerId}
+      onShowSubmitFormChange={setShowSubmitForm}
+      onRejectReasonChange={setRejectReason}
+      onFrameNoChange={setFrameNo}
+      onWinnerTeamIdChange={setWinnerTeamId}
+      onHomeFramesChange={setHomeFrames}
+      onAwayFramesChange={setAwayFrames}
+      onIssueToken={() =>
+        void postJson(
+          `/orgs/${orgId}/fixtures/${fixtureId}/tokens:issue`,
+          { teamId: tokenTeamId, holderPlayerId },
+          'Token issued',
+        )
+      }
+      onTransferToken={() =>
+        void postJson(
+          `/orgs/${orgId}/fixtures/${fixtureId}/tokens:transfer`,
+          { teamId: tokenTeamId, toPlayerId: transferToPlayerId },
+          'Token transferred',
+        )
+      }
+      onAcceptToken={() =>
+        void postJson(
+          `/orgs/${orgId}/fixtures/${fixtureId}/tokens:accept`,
+          { teamId: tokenTeamId, playerId: acceptPlayerId },
+          'Token accepted',
+        )
+      }
+      onSubmitResult={() => void submitResult()}
+      onApproveResult={() => void approveResult()}
+      onRejectResult={() => void rejectResult()}
+      onRecordFrame={() =>
+        void postJson(
+          `/orgs/${orgId}/fixtures/${fixtureId}/events`,
+          {
+            eventType: 'FRAME_RECORDED',
+            expectedRevision: currentRevision(),
+            payload: { frame_no: frameNo, winner_team_id: winnerTeamId },
+          },
+          'Frame recorded',
+        )
+      }
+      onCompleteMatch={() =>
+        void postJson(
+          `/orgs/${orgId}/fixtures/${fixtureId}/complete`,
+          {
+            expectedRevision: currentRevision(),
+            homeFrames,
+            awayFrames,
+          },
+          'Match completed',
+        )
+      }
+    />
   );
-}
-
-function getLatestSubmittedResult(events: MatchEvent[]): SubmittedResult {
-  const latestSubmitted = [...events]
-    .sort((a, b) => b.revision - a.revision)
-    .find(event => event.eventType === 'RESULT_SUBMITTED');
-  if (!latestSubmitted) return null;
-  const payload = latestSubmitted.payload || {};
-  const submittingTeamId =
-    typeof payload.submitting_team_id === 'string' ? payload.submitting_team_id : '';
-  if (!submittingTeamId) return null;
-  const homeFrames = toNonNegativeInt(payload.home_frames);
-  const awayFrames = toNonNegativeInt(payload.away_frames);
-  return { submittingTeamId, homeFrames, awayFrames };
-}
-
-function getRequiredActionLabel(
-  state: Fixture['state'] | undefined,
-  canSubmit: boolean,
-  canApproveOrReject: boolean,
-): string {
-  if (!state) return 'Select a fixture';
-  if (state === 'LOCKED') return 'No action (locked)';
-  if (state === 'DISPUTED') return 'No captain action (disputed)';
-  if (state === 'AWAITING_OPPONENT') {
-    return canApproveOrReject ? 'Approve or reject required' : 'Awaiting opponent captain';
-  }
-  if (state === 'SCHEDULED' || state === 'IN_PROGRESS') {
-    return canSubmit ? 'Submit result required' : 'Awaiting token holder submit';
-  }
-  if (state === 'SUBMITTED') return 'Awaiting opponent review';
-  return 'No action';
-}
-
-function toNonNegativeInt(value: unknown): number {
-  const parsed = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(parsed)) return 0;
-  const int = Math.floor(parsed);
-  return int < 0 ? 0 : int;
 }
 
 export default function MatchNightPage() {

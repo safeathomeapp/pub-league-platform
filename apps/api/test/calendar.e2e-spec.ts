@@ -80,7 +80,7 @@ describe('calendar (e2e)', () => {
     await api(app)
       .patch(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ scheduledAt: '2026-04-15T19:30:00.000Z', status: 'scheduled' })
+      .send({ scheduledAt: '2026-04-15T19:30:00.000Z', state: 'SCHEDULED' })
       .expect(200);
 
     const divisionFeed = await api(app)

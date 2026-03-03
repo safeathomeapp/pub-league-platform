@@ -2,18 +2,11 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-
-type OutboxItem = {
-  id: string;
-  status: string;
-  channel: string;
-  to: string;
-  templateKey: string;
-  attempts: number;
-  lastError: string | null;
-  scheduledFor: string;
-  updatedAt: string;
-};
+import {
+  NotificationsAdminView,
+  type NotificationsMonitoringSummary,
+  type NotificationsOutboxItem,
+} from './notifications-admin-view';
 
 function NotificationsAdminPageContent() {
   const search = useSearchParams();
@@ -24,8 +17,8 @@ function NotificationsAdminPageContent() {
   const [channelFilter, setChannelFilter] = useState('');
   const [templateKeyFilter, setTemplateKeyFilter] = useState('');
   const [monitoringHours, setMonitoringHours] = useState(24);
-  const [outbox, setOutbox] = useState<OutboxItem[]>([]);
-  const [monitoring, setMonitoring] = useState<any>(null);
+  const [outbox, setOutbox] = useState<NotificationsOutboxItem[]>([]);
+  const [monitoring, setMonitoring] = useState<NotificationsMonitoringSummary | null>(null);
   const [testChannel, setTestChannel] = useState('sms');
   const [testTo, setTestTo] = useState('+447700900009');
   const [testMessage, setTestMessage] = useState('Beta test ping');
@@ -103,71 +96,31 @@ function NotificationsAdminPageContent() {
   }
 
   return (
-    <main>
-      <h1>Notifications Admin</h1>
-      <p>View outbox, monitor failures, and queue test messages.</p>
-      <p>
-        <a href="/orgs">Organisations</a> | <a href="/sponsors-admin">Sponsors</a> | <a href="/schedule">Schedule</a> | <a href="/help">Help</a>
-      </p>
-
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-        <input placeholder="orgId" value={orgId} onChange={e => setOrgId(e.target.value)} required />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-          <option value="">any status</option>
-          <option value="pending">pending</option>
-          <option value="sending">sending</option>
-          <option value="sent">sent</option>
-          <option value="failed">failed</option>
-        </select>
-        <select value={channelFilter} onChange={e => setChannelFilter(e.target.value)}>
-          <option value="">any channel</option>
-          <option value="sms">sms</option>
-          <option value="whatsapp">whatsapp</option>
-          <option value="email">email</option>
-        </select>
-        <input
-          placeholder="templateKey (optional)"
-          value={templateKeyFilter}
-          onChange={e => setTemplateKeyFilter(e.target.value)}
-        />
-        <button type="button" onClick={() => void loadOutbox()} disabled={!orgId}>Load outbox</button>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-        <input
-          type="number"
-          min={1}
-          max={168}
-          value={monitoringHours}
-          onChange={e => setMonitoringHours(Number(e.target.value))}
-        />
-        <button type="button" onClick={() => void loadMonitoring()} disabled={!orgId}>
-          Load monitoring
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-        <select value={testChannel} onChange={e => setTestChannel(e.target.value)}>
-          <option value="sms">sms</option>
-          <option value="whatsapp">whatsapp</option>
-          <option value="email">email</option>
-        </select>
-        <input value={testTo} onChange={e => setTestTo(e.target.value)} placeholder="Recipient" />
-        <input value={testMessage} onChange={e => setTestMessage(e.target.value)} placeholder="Message" />
-        <button type="button" onClick={() => void queueTestNotification()} disabled={!orgId}>
-          Queue test
-        </button>
-      </div>
-
-      {status ? <p>{status}</p> : null}
-      {error ? <p style={{ color: 'crimson' }}>{error}</p> : null}
-
-      <h2>Monitoring summary</h2>
-      <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(monitoring, null, 2)}</pre>
-
-      <h2>Outbox</h2>
-      <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(outbox, null, 2)}</pre>
-    </main>
+    <NotificationsAdminView
+      orgId={orgId}
+      statusFilter={statusFilter}
+      channelFilter={channelFilter}
+      templateKeyFilter={templateKeyFilter}
+      monitoringHours={monitoringHours}
+      outbox={outbox}
+      monitoring={monitoring}
+      testChannel={testChannel}
+      testTo={testTo}
+      testMessage={testMessage}
+      status={status}
+      error={error}
+      onOrgIdChange={setOrgId}
+      onStatusFilterChange={setStatusFilter}
+      onChannelFilterChange={setChannelFilter}
+      onTemplateKeyFilterChange={setTemplateKeyFilter}
+      onMonitoringHoursChange={setMonitoringHours}
+      onLoadOutbox={() => void loadOutbox()}
+      onLoadMonitoring={() => void loadMonitoring()}
+      onTestChannelChange={setTestChannel}
+      onTestToChange={setTestTo}
+      onTestMessageChange={setTestMessage}
+      onQueueTest={() => void queueTestNotification()}
+    />
   );
 }
 

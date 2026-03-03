@@ -4,7 +4,7 @@ Generated: 2026-02-16
 Use this checklist with a seeded local environment.
 
 ## Preflight
-- [ ] Run `npm run db:push`
+- [ ] Run `npm run db:migrate`
 - [ ] Run `npm run seed:demo`
 - [ ] Run `npm run dev`
 - [ ] Open `http://localhost:3000/onboarding`
@@ -45,7 +45,7 @@ Pass criteria:
 Pass criteria:
 - Token actions return success
 - Event log revision increments
-- Fixture status becomes `completed`
+- Fixture state becomes `LOCKED`
 
 ## D) Standings
 - [ ] Open standings via API/UI path after completion

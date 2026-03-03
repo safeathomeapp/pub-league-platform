@@ -108,7 +108,7 @@ describe('notifications (e2e)', () => {
     await api(app)
       .patch(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ scheduledAt: '2026-07-20T19:30:00.000Z', status: 'scheduled' })
+      .send({ scheduledAt: '2026-07-20T19:30:00.000Z', state: 'SCHEDULED' })
       .expect(200);
 
     await api(app)

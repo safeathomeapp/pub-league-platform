@@ -7,7 +7,7 @@ type Team = { id: string; name: string };
 type Fixture = {
   id: string;
   scheduledAt: string | null;
-  status: 'scheduled' | 'in_progress' | 'completed';
+  state: 'SCHEDULED' | 'IN_PROGRESS' | 'SUBMITTED' | 'AWAITING_OPPONENT' | 'DISPUTED' | 'LOCKED';
   homeTeam: Team;
   awayTeam: Team;
 };
@@ -57,7 +57,7 @@ function SchedulePageContent() {
     }
   }
 
-  async function updateFixture(fixtureId: string, scheduledAt: string, status: string) {
+  async function updateFixture(fixtureId: string, scheduledAt: string, state: string) {
     setError(null);
     try {
       const res = await authFetch(`/orgs/${orgId}/fixtures/${fixtureId}`, {
@@ -65,7 +65,7 @@ function SchedulePageContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
-          status,
+          state,
         }),
       });
       const data = await res.json();
@@ -103,7 +103,7 @@ function SchedulePageContent() {
   return (
     <main>
       <h1>Schedule</h1>
-      <p>Load a division fixture list, update fixture times/status, and preview .ics feeds.</p>
+      <p>Load a division fixture list, update fixture times/state, and preview .ics feeds.</p>
       <p>
         <a href="/orgs">Back to organisations</a> |{' '}
         <a href={`/match-night?orgId=${orgId}&divisionId=${divisionId}`}>Match Night</a> |{' '}
@@ -129,7 +129,7 @@ function SchedulePageContent() {
         <thead>
           <tr>
             <th style={{ textAlign: 'left' }}>Match</th>
-            <th style={{ textAlign: 'left' }}>Status</th>
+            <th style={{ textAlign: 'left' }}>State</th>
             <th style={{ textAlign: 'left' }}>Scheduled (UTC)</th>
             <th style={{ textAlign: 'left' }}>Actions</th>
           </tr>
@@ -170,17 +170,17 @@ function FixtureRow(props: {
   orgId: string;
   divisionId: string;
   fixture: Fixture;
-  onUpdate: (fixtureId: string, scheduledAt: string, status: string) => Promise<void>;
+  onUpdate: (fixtureId: string, scheduledAt: string, state: string) => Promise<void>;
   onLoadTeamIcs: (teamId: string) => Promise<void>;
 }) {
   const { orgId, divisionId, fixture, onUpdate, onLoadTeamIcs } = props;
-  const [status, setStatus] = useState(fixture.status);
+  const [state, setState] = useState(fixture.state);
   const [scheduledAt, setScheduledAt] = useState(toDateTimeLocal(fixture.scheduledAt));
 
   return (
     <tr>
       <td>{fixture.homeTeam.name} vs {fixture.awayTeam.name}</td>
-      <td>{fixture.status}</td>
+      <td>{fixture.state}</td>
       <td>{fixture.scheduledAt ?? 'Unscheduled'}</td>
       <td>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -189,11 +189,11 @@ function FixtureRow(props: {
             value={scheduledAt}
             onChange={e => setScheduledAt(e.target.value)}
           />
-          <select value={status} onChange={e => setStatus(e.target.value as Fixture['status'])}>
-            <option value="scheduled">scheduled</option>
-            <option value="in_progress">in_progress</option>
+          <select value={state} onChange={e => setState(e.target.value as Fixture['state'])}>
+            <option value="SCHEDULED">SCHEDULED</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
           </select>
-          <button type="button" onClick={() => void onUpdate(fixture.id, scheduledAt, status)}>
+          <button type="button" onClick={() => void onUpdate(fixture.id, scheduledAt, state)}>
             Save
           </button>
           <button type="button" onClick={() => void onLoadTeamIcs(fixture.homeTeam.id)}>

@@ -13,6 +13,7 @@
     "smoke:containers": "powershell -ExecutionPolicy Bypass -File ./scripts/container-smoke.ps1",
     "db:push": "npm --workspace apps/api run db:push",
     "db:migrate": "npm --workspace apps/api run db:migrate",
+    "db:migrate:create": "npm --workspace apps/api run db:migrate:create",
     "db:studio": "npm --workspace apps/api run db:studio",
     "seed:demo": "npm --workspace apps/api run seed:demo"
   }

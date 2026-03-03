@@ -1,5 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { DisputeStatus, FixtureState, FixtureStatus, MatchEventType, Prisma } from '@prisma/client';
+import { DisputeStatus, FixtureState, MatchEventType, Prisma } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StandingsService } from '../standings/standings.service';
@@ -71,6 +71,7 @@ export class MatchEventsService {
     },
   ) {
     const fixture = await this.getFixtureInOrg(orgId, fixtureId);
+    await this.assertMinimumRosterPolicy(fixture.seasonId, fixture.homeTeamId, fixture.awayTeamId);
 
     await this.prisma.$transaction(async tx => {
       const currentRevision = await this.getCurrentRevision(tx, fixtureId);
@@ -102,7 +103,7 @@ export class MatchEventsService {
 
       await tx.fixture.update({
         where: { id: fixtureId },
-        data: { status: FixtureStatus.completed, state: FixtureState.LOCKED },
+        data: { state: FixtureState.LOCKED },
       });
     });
 
@@ -127,6 +128,7 @@ export class MatchEventsService {
     },
   ) {
     const fixture = await this.getFixtureInOrg(orgId, fixtureId);
+    await this.assertMinimumRosterPolicy(fixture.seasonId, fixture.homeTeamId, fixture.awayTeamId);
     if (fixture.state !== FixtureState.SCHEDULED && fixture.state !== FixtureState.IN_PROGRESS) {
       throw new ConflictException('Fixture cannot be submitted from current state');
     }
@@ -173,10 +175,7 @@ export class MatchEventsService {
 
       return tx.fixture.update({
         where: { id: fixtureId },
-        data: {
-          state: FixtureState.AWAITING_OPPONENT,
-          status: FixtureStatus.in_progress,
-        },
+        data: { state: FixtureState.AWAITING_OPPONENT },
       });
     });
 
@@ -246,10 +245,7 @@ export class MatchEventsService {
 
       return tx.fixture.update({
         where: { id: fixtureId },
-        data: {
-          state: FixtureState.LOCKED,
-          status: FixtureStatus.completed,
-        },
+        data: { state: FixtureState.LOCKED },
       });
     });
 
@@ -334,7 +330,7 @@ export class MatchEventsService {
 
       return tx.fixture.update({
         where: { id: fixtureId },
-        data: { state: FixtureState.DISPUTED, status: FixtureStatus.in_progress },
+        data: { state: FixtureState.DISPUTED },
       });
     });
   }
@@ -356,10 +352,29 @@ export class MatchEventsService {
         id: fixtureId,
         division: { season: { league: { organisationId: orgId } } },
       },
-      select: { id: true, divisionId: true, homeTeamId: true, awayTeamId: true, state: true },
+      select: { id: true, divisionId: true, homeTeamId: true, awayTeamId: true, state: true, division: { select: { seasonId: true } } },
     });
     if (!fixture) throw new NotFoundException('Fixture not found');
-    return fixture;
+    return { ...fixture, seasonId: fixture.division.seasonId };
+  }
+
+  private async assertMinimumRosterPolicy(seasonId: string, homeTeamId: string, awayTeamId: string): Promise<void> {
+    const season = await this.prisma.season.findUnique({
+      where: { id: seasonId },
+      select: { minimumPlayersPerMatch: true },
+    });
+    if (!season) throw new NotFoundException('Season not found');
+
+    const [homeRoster, awayRoster] = await Promise.all([
+      this.prisma.teamPlayer.count({ where: { seasonId, teamId: homeTeamId } }),
+      this.prisma.teamPlayer.count({ where: { seasonId, teamId: awayTeamId } }),
+    ]);
+
+    if (homeRoster < season.minimumPlayersPerMatch || awayRoster < season.minimumPlayersPerMatch) {
+      throw new ConflictException(
+        `Season minimumPlayersPerMatch policy requires ${season.minimumPlayersPerMatch} rostered players per team`,
+      );
+    }
   }
 
   private async assertCanWrite(

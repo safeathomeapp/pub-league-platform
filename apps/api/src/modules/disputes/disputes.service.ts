@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { DisputeStatus, FixtureState, FixtureStatus, MatchEventType, Prisma } from '@prisma/client';
+import { DisputeStatus, FixtureState, MatchEventType, Prisma } from '@prisma/client';
 import { PrismaService } from '../db/prisma.service';
 import { StandingsService } from '../standings/standings.service';
 
@@ -109,7 +109,7 @@ export class DisputesService {
 
         await tx.fixture.update({
           where: { id: dispute.fixture.id },
-          data: { state: FixtureState.LOCKED, status: FixtureStatus.completed },
+          data: { state: FixtureState.LOCKED },
         });
       }
 

@@ -68,8 +68,8 @@ Filtering rules:
   - DIVISION eligible when slot scope matches division
 
 ## 4) State and Data Authority
-- Overlay fixture status authority is `Fixture.state`.
-- `Fixture.status` is legacy compatibility field and not used for overlay logic.
+- Overlay fixture lifecycle authority is `Fixture.state`.
+- No secondary fixture lifecycle field is used for overlay logic.
 - Standings must remain derived from locked outcomes only.
 
 ## 5) Refresh Model

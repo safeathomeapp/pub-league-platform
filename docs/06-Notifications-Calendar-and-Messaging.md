@@ -35,6 +35,10 @@ Retry policy:
 - exponential backoff (e.g., +1m, +10m, +60m)
 - hard fail after attempts and surface in admin UI.
 
+Admin visibility:
+- `/notifications-admin` should expose monitoring totals, recent failures, and outbox inspection without requiring raw JSON reading.
+- outbox inspection should separate failed items from queued work so organiser triage is immediate.
+
 ## Notification triggers (MVP)
 1) Fixture reminder
 - schedule: 24h before fixture.scheduled_at

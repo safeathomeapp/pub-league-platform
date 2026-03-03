@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { authFetch } from '../../lib/api';
 import {
   emptyMigrationDraft,
+  migrationDraftTemplates,
   MigrationAssistantView,
   type MigrationJobDetail,
   type MigrationJobSummary,
@@ -18,11 +19,14 @@ function MigrationAssistantPageContent() {
   const [selectedJobId, setSelectedJobId] = useState('');
   const [selectedJob, setSelectedJob] = useState<MigrationJobDetail | null>(null);
   const [draftText, setDraftText] = useState(JSON.stringify(initialDraft, null, 2));
+  const [draftParseError, setDraftParseError] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [readyToImport, setReadyToImport] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sourceType, setSourceType] = useState('SCREENSHOT');
   const [file, setFile] = useState<File | null>(null);
+  const draftTemplates = useMemo(() => migrationDraftTemplates(), []);
 
   async function loadJobs(selectJobId?: string) {
     setStatus('Loading migration jobs...');
@@ -41,6 +45,8 @@ function MigrationAssistantPageContent() {
         setSelectedJobId('');
         setSelectedJob(null);
         setDraftText(JSON.stringify(emptyMigrationDraft(), null, 2));
+        setDraftParseError(null);
+        setHasUnsavedChanges(false);
         setReadyToImport(false);
       }
       setStatus('Migration jobs loaded');
@@ -61,7 +67,12 @@ function MigrationAssistantPageContent() {
       setSelectedJobId(jobId);
       setSelectedJob(job);
       setDraftText(JSON.stringify(job.draft ?? emptyMigrationDraft(), null, 2));
-      setReadyToImport(job.status === 'READY_TO_IMPORT' || job.status === 'IMPORTED');
+      setDraftParseError(null);
+      setHasUnsavedChanges(false);
+      setReadyToImport(
+        (job.status === 'READY_TO_IMPORT' || job.status === 'IMPORTED')
+        && job.validationSummary?.valid !== false,
+      );
       setStatus('Migration job loaded');
     } catch (err) {
       setStatus(null);
@@ -104,6 +115,7 @@ function MigrationAssistantPageContent() {
 
     try {
       const parsed = JSON.parse(draftText) as Record<string, unknown>;
+      setDraftParseError(null);
       const res = await authFetch(`/orgs/${orgId}/migration-jobs/${selectedJobId}/review`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -111,16 +123,27 @@ function MigrationAssistantPageContent() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error?.message ?? 'Failed to save review');
+      setHasUnsavedChanges(false);
       await loadJobs(selectedJobId);
       setStatus('Review saved');
     } catch (err) {
       setStatus(null);
+      if (err instanceof SyntaxError) {
+        setDraftParseError(`Draft JSON is invalid: ${err.message}`);
+        setError('Fix the draft JSON before saving review');
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Failed to save review');
     }
   }
 
   async function importJob() {
     if (!selectedJobId) return;
+    if (hasUnsavedChanges) {
+      setError('Save review before importing this migration job');
+      setStatus(null);
+      return;
+    }
     setStatus('Importing migration job...');
     setError(null);
 
@@ -170,6 +193,48 @@ function MigrationAssistantPageContent() {
     }
   }
 
+  function applyDraftTemplate(templateId: string) {
+    const template = draftTemplates.find(item => item.id === templateId);
+    if (!template) {
+      setError('Unknown draft template');
+      return;
+    }
+
+    setError(null);
+    setDraftParseError(null);
+    setDraftText(JSON.stringify(template.draft, null, 2));
+    setHasUnsavedChanges(true);
+    setReadyToImport(false);
+    setStatus(`Draft template applied: ${template.label}`);
+  }
+
+  function updateDraftText(value: string) {
+    setDraftText(value);
+    setHasUnsavedChanges(true);
+    setReadyToImport(false);
+    if (draftParseError) {
+      setDraftParseError(null);
+    }
+  }
+
+  function formatDraft() {
+    try {
+      const parsed = JSON.parse(draftText) as Record<string, unknown>;
+      setDraftText(JSON.stringify(parsed, null, 2));
+      setDraftParseError(null);
+      setHasUnsavedChanges(true);
+      setReadyToImport(false);
+      setError(null);
+      setStatus('Draft JSON formatted');
+    } catch (err) {
+      setDraftParseError(
+        `Draft JSON is invalid: ${err instanceof Error ? err.message : 'Unable to parse draft JSON'}`,
+      );
+      setError('Fix the draft JSON before formatting');
+      setStatus(null);
+    }
+  }
+
   return (
     <MigrationAssistantView
       orgId={orgId}
@@ -178,13 +243,17 @@ function MigrationAssistantPageContent() {
       jobs={jobs}
       selectedJobId={selectedJobId}
       draftText={draftText}
+      draftParseError={draftParseError}
+      hasUnsavedChanges={hasUnsavedChanges}
       readyToImport={readyToImport}
       selectedJob={selectedJob}
       sourceType={sourceType}
       onOrgIdChange={setOrgId}
       onLoadJobs={() => void loadJobs()}
       onSelectJob={value => void loadJobDetail(value)}
-      onDraftTextChange={setDraftText}
+      onDraftTextChange={updateDraftText}
+      onApplyDraftTemplate={applyDraftTemplate}
+      onFormatDraft={formatDraft}
       onReadyToImportChange={setReadyToImport}
       onCreateJob={() => void createJob()}
       onSaveReview={() => void saveReview()}

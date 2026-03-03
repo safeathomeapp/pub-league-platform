@@ -6,9 +6,9 @@ This document is the authoritative roadmap for the pivot. It defines the sequenc
 
 ---
 
-## Current status checkpoint (as of 2026-03-02)
+## Current status checkpoint (as of 2026-03-03)
 - Canonical companion status doc: `/CHATGPT_NEXT_STEP_NOTE.md`.
-- Completed through Milestone 9 based on latest session docs and 2026-03-02 validation:
+- Completed through Milestone 9 based on latest session docs and validation through 2026-03-03:
   - `docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
   - `docs/Sessions/2026-02-17_21-06-21-m6-sponsor-slots-minimal.md`
   - `docs/Sessions/2026-02-17_22-54-23-m6-web-sponsors-admin-ui.md`
@@ -19,6 +19,22 @@ This document is the authoritative roadmap for the pivot. It defines the sequenc
   - `docs/Sessions/2026-02-24_12-45-00-m8-overlay-hardening-and-tests.md`
   - `docs/Sessions/2026-03-02_19-38-46-docs-convergence-and-m9-contract.md`
   - `docs/Sessions/2026-03-02_19-52-38-m9-migration-assistant-thin-slice.md`
+  - `docs/Sessions/2026-03-03_11-45-00-fixture-lifecycle-field-consolidation.md`
+  - `docs/Sessions/2026-03-03_13-10-00-web-smoke-match-night-happy-path.md`
+  - `docs/Sessions/2026-03-03_13-40-00-web-smoke-disputes-resolution-state.md`
+  - `docs/Sessions/2026-03-03_14-05-00-docs-convergence-active-surface.md`
+  - `docs/Sessions/2026-03-03_14-25-00-root-doc-entrypoint-tightening.md`
+  - `docs/Sessions/2026-03-03_15-05-00-migration-assistant-validation-summary.md`
+  - `docs/Sessions/2026-03-03_15-35-00-migration-assistant-import-preview-summary.md`
+  - `docs/Sessions/2026-03-03_16-00-00-migration-assistant-import-audit-visibility.md`
+  - `docs/Sessions/2026-03-03_16-20-00-migration-assistant-review-draft-templates.md`
+  - `docs/Sessions/2026-03-03_16-35-00-migration-assistant-review-draft-format-guard.md`
+  - `docs/Sessions/2026-03-03_16-50-00-migration-assistant-review-unsaved-change-guard.md`
+  - `docs/Sessions/2026-03-03_17-05-00-migration-assistant-review-ready-state-integrity.md`
+  - `docs/Sessions/2026-03-03_17-30-00-notifications-admin-monitoring-visibility.md`
+  - `docs/Sessions/2026-03-03_17-45-00-notifications-admin-outbox-triage-sections.md`
+  - `docs/Sessions/2026-03-03_18-20-00-venue-authority-and-capacity-baseline.md`
+  - `docs/Sessions/2026-03-03_19-10-00-competition-policy-baseline.md`
 - Milestone 8 acceptance validation:
   - `npm --workspace apps/api run typecheck`
   - `npm --workspace apps/api run test:e2e`
@@ -31,6 +47,13 @@ This document is the authoritative roadmap for the pivot. It defines the sequenc
   - `npm --workspace apps/web run test:smoke`
   - `npm --workspace apps/web run build`
 - Active milestone: none. Roadmap-defined work is complete through Milestone 9.
+- Post-M9 baseline additions now implemented:
+  - runtime/container hardening and compose smoke automation
+  - fixture lifecycle consolidation on canonical `Fixture.state`
+  - incremental web smoke coverage for match-night, disputes, migration assistant, and notifications admin
+  - migration assistant review hardening across validation, preview, audit visibility, and local editor guardrails
+  - venue authority baseline with team venue assignment and capacity warnings
+  - season competition policy baseline with live `minimumPlayersPerMatch` enforcement
 
 ---
 
@@ -120,7 +143,7 @@ Deliverables (Prisma + migration):
   - enforce “player cannot be in 2 teams in same season” (via unique indexes / join model)
   - enforce token holder belongs to the team roster (where enforceable)
 Acceptance:
-- `npm --workspace apps/api run db:push` succeeds
+- `npm --workspace apps/api run db:migrate` succeeds
 - All E2E tests pass
 
 ### Milestone 2 — Match submission + opponent sign‑off workflow (the pivot core)
@@ -240,4 +263,42 @@ Codex must:
 ## 8) Immediate next actions (today)
 1. Treat the post-M9 runtime baseline as established: Docker validation and container smoke automation are complete.
 2. Treat migration-job upload persistence as part of that runtime baseline: Docker-backed API uploads now survive container restart.
-3. Keep change control strict: the next step must begin with a new explicit delta document, not direct implementation.
+3. Treat venue authority and season competition policy as new baseline operating surfaces for future league work.
+4. Keep change control strict: the next step must begin with a new explicit delta document, not direct implementation.
+
+---
+
+## 9) Post-M9 controlled backlog
+Roadmap-defined milestone work is complete. Further product work should be selected from narrow deltas against the current baseline.
+
+### Highest-value next slices
+1. Venue-aware scheduling enforcement
+- Move beyond warning-only venue capacity signals.
+- At minimum, prevent impossible same-night home allocations at a shared venue for the active sport.
+
+2. Competition policy enforcement expansion
+- Extend from `minimumPlayersPerMatch` to one or two more live rules.
+- Best candidates:
+  - hidden order submission until both sides commit
+  - same-team-opponent prevention on the same night
+
+3. Organiser authority model hardening
+- Clarify TO vs TO-admin semantics inside the current org model.
+- Keep this narrow: ownership handoff and coarse delegated privileges before any custom privilege matrix.
+
+4. Venue operations and messaging
+- Add future venue-admin authority only after venue-aware scheduling exists.
+- Keep messaging use-cases explicit and operational, not social-first.
+
+5. Tournament-mode divergence
+- Only after league baseline is stronger.
+- Keep tournament-specific policy separate from league truth to avoid rules leakage.
+
+### Explicitly deferred
+- payments and yearly player fees
+- anti-abuse/device identity controls
+- ELO/rating system
+- social media integrations
+- broad multi-sport stat generalisation beyond current ruleset boundaries
+
+These remain valid future product ideas, but they should not be mixed into the current league-operations baseline without a dedicated delta.

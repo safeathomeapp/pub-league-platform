@@ -66,10 +66,24 @@ describe('teams/players/rosters (e2e)', () => {
       .send({ name: 'Division A' })
       .expect(201);
 
+    const venue = await api(app)
+      .post(`/api/v1/orgs/${ownerOrg.body.id}/venues`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'The Rack Shack', poolTables: 2, dartsBoards: 1 })
+      .expect(201);
+    expect(venue.body.name).toBe('The Rack Shack');
+
+    const venues = await api(app)
+      .get(`/api/v1/orgs/${ownerOrg.body.id}/venues`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(Array.isArray(venues.body)).toBe(true);
+    expect(venues.body.some((item: { id: string }) => item.id === venue.body.id)).toBe(true);
+
     const team = await api(app)
       .post(`/api/v1/orgs/${ownerOrg.body.id}/divisions/${division.body.id}/teams`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ name: 'The Breakers' })
+      .send({ name: 'The Breakers', venueId: venue.body.id })
       .expect(201);
     const otherTeam = await api(app)
       .post(`/api/v1/orgs/${ownerOrg.body.id}/divisions/${division.body.id}/teams`)
@@ -78,6 +92,7 @@ describe('teams/players/rosters (e2e)', () => {
       .expect(201);
 
     expect(team.body.divisionId).toBe(division.body.id);
+    expect(team.body.venue.id).toBe(venue.body.id);
 
     const teams = await api(app)
       .get(`/api/v1/orgs/${ownerOrg.body.id}/divisions/${division.body.id}/teams`)
@@ -85,13 +100,23 @@ describe('teams/players/rosters (e2e)', () => {
       .expect(200);
     expect(Array.isArray(teams.body)).toBe(true);
     expect(teams.body.length).toBeGreaterThanOrEqual(1);
+    expect(teams.body.find((item: { id: string }) => item.id === team.body.id).venue.id).toBe(venue.body.id);
 
     const updatedTeam = await api(app)
       .patch(`/api/v1/orgs/${ownerOrg.body.id}/teams/${team.body.id}`)
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ name: 'The Cue Masters' })
+      .send({ name: 'The Cue Masters', venueId: venue.body.id })
       .expect(200);
     expect(updatedTeam.body.name).toBe('The Cue Masters');
+    expect(updatedTeam.body.venue.id).toBe(venue.body.id);
+
+    const updatedVenue = await api(app)
+      .patch(`/api/v1/orgs/${ownerOrg.body.id}/venues/${venue.body.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'The Rack Palace', poolTables: 3 })
+      .expect(200);
+    expect(updatedVenue.body.name).toBe('The Rack Palace');
+    expect(updatedVenue.body.poolTables).toBe(3);
 
     const player = await api(app)
       .post(`/api/v1/orgs/${ownerOrg.body.id}/players`)
@@ -140,6 +165,11 @@ describe('teams/players/rosters (e2e)', () => {
 
     await api(app)
       .get(`/api/v1/orgs/${ownerOrg.body.id}/players`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(403);
+
+    await api(app)
+      .get(`/api/v1/orgs/${ownerOrg.body.id}/venues`)
       .set('Authorization', `Bearer ${otherToken}`)
       .expect(403);
   });
@@ -221,6 +251,11 @@ describe('teams/players/rosters (e2e)', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ displayName: 'Zero Player', contactEmail: `zero_${Date.now()}@example.com` })
       .expect(201);
+    const teamBPlayer = await api(app)
+      .post(`/api/v1/orgs/${orgId}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ displayName: 'Team B Player', contactEmail: `team_b_${Date.now()}@example.com` })
+      .expect(201);
 
     await api(app)
       .post(`/api/v1/orgs/${orgId}/teams/${teamA.body.id}/players`)
@@ -231,6 +266,11 @@ describe('teams/players/rosters (e2e)', () => {
       .post(`/api/v1/orgs/${orgId}/teams/${teamA.body.id}/players`)
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ playerId: zeroAppearancesPlayer.body.id, role: 'PLAYER' })
+      .expect(201);
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/teams/${teamB.body.id}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ playerId: teamBPlayer.body.id, role: 'PLAYER' })
       .expect(201);
 
     await api(app)

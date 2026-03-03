@@ -45,7 +45,7 @@ Command (from repo root):
 
 ### 0.2 Ensure Prisma Client generation
 Run:
-- `npm run db:push`
+- `npm run db:migrate`
 - `npm --workspace apps/api run prisma:generate`
 
 ---

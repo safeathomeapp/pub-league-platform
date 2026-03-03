@@ -73,7 +73,7 @@ describe('match-events (e2e)', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ name: 'Team A' })
       .expect(201);
-    await api(app)
+    const teamB = await api(app)
       .post(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/teams`)
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ name: 'Team B' })
@@ -83,6 +83,22 @@ describe('match-events (e2e)', () => {
       .post(`/api/v1/orgs/${orgId}/players`)
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ displayName: 'Player One', contactEmail: 'one@example.com' })
+      .expect(201);
+    const playerTwo = await api(app)
+      .post(`/api/v1/orgs/${orgId}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ displayName: 'Player Two', contactEmail: 'two@example.com' })
+      .expect(201);
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/teams/${teamA.body.id}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ playerId: playerOne.body.id, role: 'PLAYER' })
+      .expect(201);
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/teams/${teamB.body.id}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ playerId: playerTwo.body.id, role: 'PLAYER' })
       .expect(201);
 
     await api(app)
@@ -142,7 +158,7 @@ describe('match-events (e2e)', () => {
       .get(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}`)
       .set('Authorization', `Bearer ${ownerToken}`)
       .expect(200);
-    expect(fixture.body.status).toBe('completed');
+    expect(fixture.body.state).toBe('LOCKED');
 
     await api(app)
       .get(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}/events`)
@@ -403,5 +419,135 @@ describe('match-events (e2e)', () => {
       })
       .expect(201);
     expect(rejected.body.state).toBe('DISPUTED');
+  });
+
+  it('enforces season minimumPlayersPerMatch before submit and complete flows', async () => {
+    const ownerEmail = `policy_events_owner_${Date.now()}@example.com`;
+    const holderAEmail = `policy_holder_a_${Date.now()}@example.com`;
+    const password = 'password1234';
+
+    const ownerReg = await api(app).post('/api/v1/auth/register').send({ email: ownerEmail, password }).expect(201);
+    const ownerToken = ownerReg.body.accessToken;
+    const holderAReg = await api(app).post('/api/v1/auth/register').send({ email: holderAEmail, password }).expect(201);
+    const holderAToken = holderAReg.body.accessToken;
+
+    const org = await api(app)
+      .post('/api/v1/orgs')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Minimum Player Policy Org' })
+      .expect(201);
+    const orgId = org.body.id as string;
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/members`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ email: holderAEmail, role: 'CAPTAIN' })
+      .expect(201);
+
+    const ruleset = await api(app)
+      .post(`/api/v1/orgs/${orgId}/rulesets`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        name: 'Minimum Policy Ruleset',
+        sport: 'pool',
+        config: { points_model: { win: 2, loss: 0 } },
+      })
+      .expect(201);
+
+    const league = await api(app)
+      .post(`/api/v1/orgs/${orgId}/leagues`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Minimum Policy League', sport: 'pool', rulesetId: ruleset.body.id })
+      .expect(201);
+
+    const season = await api(app)
+      .post(`/api/v1/orgs/${orgId}/leagues/${league.body.id}/seasons`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        name: 'Minimum Policy Season',
+        startDate: '2026-01-01T00:00:00.000Z',
+        endDate: '2026-12-31T00:00:00.000Z',
+        competitionPolicy: { minimumPlayersPerMatch: 2 },
+      })
+      .expect(201);
+
+    const division = await api(app)
+      .post(`/api/v1/orgs/${orgId}/seasons/${season.body.id}/divisions`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Division A' })
+      .expect(201);
+
+    const teamA = await api(app)
+      .post(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/teams`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Team A' })
+      .expect(201);
+    const teamB = await api(app)
+      .post(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/teams`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Team B' })
+      .expect(201);
+
+    const playerA = await api(app)
+      .post(`/api/v1/orgs/${orgId}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ displayName: 'Captain A', contactEmail: `min_a_${Date.now()}@example.com` })
+      .expect(201);
+    const playerB = await api(app)
+      .post(`/api/v1/orgs/${orgId}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ displayName: 'Captain B', contactEmail: `min_b_${Date.now()}@example.com` })
+      .expect(201);
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/teams/${teamA.body.id}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ playerId: playerA.body.id, role: 'CAPTAIN' })
+      .expect(201);
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/teams/${teamB.body.id}/players`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ playerId: playerB.body.id, role: 'CAPTAIN' })
+      .expect(201);
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/fixtures:generate`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(201);
+
+    const fixtures = await api(app)
+      .get(`/api/v1/orgs/${orgId}/divisions/${division.body.id}/fixtures`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    const fixtureId = fixtures.body[0].id as string;
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}/tokens:issue`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ teamId: teamA.body.id, holderPlayerId: playerA.body.id })
+      .expect(201);
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}/submit`)
+      .set('Authorization', `Bearer ${holderAToken}`)
+      .send({
+        expectedRevision: 1,
+        homeFrames: 7,
+        awayFrames: 5,
+        teamId: teamA.body.id,
+        actorPlayerId: playerA.body.id,
+      })
+      .expect(409);
+
+    await api(app)
+      .post(`/api/v1/orgs/${orgId}/fixtures/${fixtureId}/complete`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        expectedRevision: 1,
+        homeFrames: 7,
+        awayFrames: 5,
+        reason: 'Attempted lock below minimum roster policy',
+      })
+      .expect(409);
   });
 });

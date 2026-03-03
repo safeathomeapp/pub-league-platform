@@ -58,10 +58,16 @@ describe('seasons/divisions (e2e)', () => {
         name: 'Spring 2026',
         startDate: '2026-03-01T00:00:00.000Z',
         endDate: '2026-06-30T00:00:00.000Z',
+        competitionPolicy: {
+          minimumPlayersPerMatch: 3,
+          hideOrdersUntilBothSubmitted: true,
+        },
       })
       .expect(201);
 
     expect(season.body.leagueId).toBe(league.body.id);
+    expect(season.body.competitionPolicy.minimumPlayersPerMatch).toBe(3);
+    expect(season.body.competitionPolicy.hideOrdersUntilBothSubmitted).toBe(true);
 
     const seasons = await api(app)
       .get(`/api/v1/orgs/${ownerOrg.body.id}/leagues/${league.body.id}/seasons`)
@@ -70,6 +76,28 @@ describe('seasons/divisions (e2e)', () => {
 
     expect(Array.isArray(seasons.body)).toBe(true);
     expect(seasons.body.length).toBeGreaterThanOrEqual(1);
+    expect(seasons.body[0].competitionPolicy).toBeTruthy();
+
+    const fetchedSeason = await api(app)
+      .get(`/api/v1/orgs/${ownerOrg.body.id}/seasons/${season.body.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(fetchedSeason.body.competitionPolicy.minimumPlayersPerMatch).toBe(3);
+
+    const updatedSeason = await api(app)
+      .patch(`/api/v1/orgs/${ownerOrg.body.id}/seasons/${season.body.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        competitionPolicy: {
+          minimumPlayersPerMatch: 4,
+          preventSameTeamOpponentRepeatSameNight: true,
+          requireMatchSignoffOnNight: true,
+        },
+      })
+      .expect(200);
+    expect(updatedSeason.body.competitionPolicy.minimumPlayersPerMatch).toBe(4);
+    expect(updatedSeason.body.competitionPolicy.preventSameTeamOpponentRepeatSameNight).toBe(true);
+    expect(updatedSeason.body.competitionPolicy.requireMatchSignoffOnNight).toBe(true);
 
     const division = await api(app)
       .post(`/api/v1/orgs/${ownerOrg.body.id}/seasons/${season.body.id}/divisions`)
