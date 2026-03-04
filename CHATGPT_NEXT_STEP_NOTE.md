@@ -1,5 +1,5 @@
 # Handoff Note For ChatGPT (Next Step)
-Updated: 2026-03-03
+Updated: 2026-03-04
 
 Companion to `/PubLeague_Program_Schedule_Roadmap_v1.md`.
 Use this file for latest completion status and immediate next implementation action.
@@ -10,10 +10,11 @@ For a fresh session, read in this order:
 2. `/docs/PIVOT_INDEX.md` for the current docs map
 3. `/PubLeague_Program_Schedule_Roadmap_v1.md` for authoritative scope and sequencing
 4. `/CHATGPT_NEXT_STEP_NOTE.md` for current completion status and the next delta prompt
-5. `/PROJECT_HANDOVER_2026-03-03.md` for concise repo-state handover
+5. `/PROJECT_HANDOVER.md` for concise repo-state handover
 
 This file is status-oriented. It does not replace the roadmap or the docs index.
 The roadmap now carries the controlled post-M9 backlog in section `9) Post-M9 controlled backlog`.
+The root handover is now stable at `/PROJECT_HANDOVER.md`; dated snapshots belong under `/docs/handovers/`.
 
 ## Current state (completed)
 - Completed through Milestone 9.
@@ -219,6 +220,14 @@ The defined roadmap is implemented through Milestone 9, the runtime baseline is 
   - season competition policy is now first-class with baseline organiser controls
 - Current backlog authority:
   - roadmap section `9) Post-M9 controlled backlog` is now the primary shortlist for next non-trivial deltas
+- Current product-note cross-reference result:
+  - strongest next slice remains `venue-aware scheduling enforcement`
+  - follow-on slices are `competition policy enforcement expansion` and `organiser authority model hardening`
 
 Suggested prompt:
-"Choose the next narrow delta from roadmap section 9, document it first, then implement it with tests and docs."
+"Choose the next narrow delta from roadmap section 9, starting with venue-aware scheduling enforcement unless a stronger blocker is found. Document it first, then implement it with tests and docs."
+
+## Immediate operator options
+1. Commit and push the current root-doc cleanup and handover tidy-up.
+2. Start the next explicit delta for `venue-aware scheduling enforcement`.
+3. Perform a deeper `rackem.app` workflow-by-workflow gap map before selecting the next delta.

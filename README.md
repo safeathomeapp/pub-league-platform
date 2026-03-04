@@ -1,7 +1,7 @@
-# Pub League Platform (Monorepo Skeleton)
-Generated: 2026-02-12
+# Pub League Platform
+Updated: 2026-03-04
 
-This is a starter scaffold aligned to the documentation pack.
+Admin-first league operations platform for UK English 8-ball first, with the current repo state now beyond the original milestone roadmap and operating through explicit deltas.
 
 ## Start Here
 For current work, use this reading order:
@@ -9,7 +9,7 @@ For current work, use this reading order:
 2. `/docs/PIVOT_INDEX.md` for the canonical docs map
 3. `/PubLeague_Program_Schedule_Roadmap_v1.md` for the authoritative roadmap
 4. `/CHATGPT_NEXT_STEP_NOTE.md` for current completion status and immediate next delta
-5. `/PROJECT_HANDOVER_2026-03-03.md` for the concise current repo-state handover
+5. `/PROJECT_HANDOVER.md` for the concise current repo-state handover
 
 Historical or superseded materials should only be consulted after the files above.
 
@@ -36,12 +36,10 @@ Copy env files:
 - `cp apps/web/.env.example apps/web/.env`
 
 ## Notes
-- This is a minimal skeleton. Modules/controllers are placeholders so Codex/Claude Code can fill in.
-- Multi-tenancy enforced by `organisationId` in schema and request scoping (to be implemented).
 - Canonical docs map: `/docs/PIVOT_INDEX.md`
 - Canonical pivot roadmap: `/PubLeague_Program_Schedule_Roadmap_v1.md`
 - Latest status + next action: `/CHATGPT_NEXT_STEP_NOTE.md`
-- Current repo-state handover: `/PROJECT_HANDOVER_2026-03-03.md`
+- Current repo-state handover: `/PROJECT_HANDOVER.md`
 - Runtime note: Docker compose now defines `postgres`, `redis`, `api`, and `web`.
 - API container startup runs `prisma migrate deploy` before boot.
 - Local migration commands:
@@ -55,3 +53,7 @@ Copy env files:
   - prints `docker compose ps`
   - runs `docker compose down` when finished
 - Migration-job runtime note: containerized API uploads now persist via the `api_uploads` Docker volume mounted at `/data/uploads`.
+- Current next-session shortlist:
+  - venue-aware scheduling enforcement
+  - competition policy enforcement expansion
+  - organiser authority model hardening

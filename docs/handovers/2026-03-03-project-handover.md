@@ -1,14 +1,14 @@
 # Project Handover
 Date: 2026-03-03
 
-This document is the concise handover for the current repo state after the post-M9 hardening and baseline-extension pass.
+This document is the concise handover for the repo state after the post-M9 hardening and baseline-extension pass.
 
 ## Canonical reading order
 1. `/README.md`
 2. `/docs/PIVOT_INDEX.md`
 3. `/PubLeague_Program_Schedule_Roadmap_v1.md`
 4. `/CHATGPT_NEXT_STEP_NOTE.md`
-5. this handover doc
+5. `/PROJECT_HANDOVER.md`
 
 ## Current product state
 - Roadmap-defined work is complete through Milestone 9.
@@ -93,7 +93,7 @@ Explicitly not started:
 - broad tournament-mode divergence
 
 ## Cross-reference notes from product usage
-The repo is now stable enough to compare directly against external product notes such as `rackem.app` observations.
+The repo is stable enough to compare directly against external product notes such as `rackem.app` observations.
 
 Recommended comparison buckets:
 1. Already implemented or aligned

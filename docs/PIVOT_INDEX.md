@@ -1,5 +1,5 @@
 # Pivot Documentation Index
-Updated: 2026-03-03
+Updated: 2026-03-04
 
 This is the single docs entry point for the pivot era.
 
@@ -9,7 +9,7 @@ For current work, read these in order:
 2. `/docs/PIVOT_INDEX.md`
 3. `/PubLeague_Program_Schedule_Roadmap_v1.md`
 4. `/CHATGPT_NEXT_STEP_NOTE.md`
-5. `/PROJECT_HANDOVER_2026-03-03.md`
+5. `/PROJECT_HANDOVER.md`
 
 Interpretation:
 - `README.md` is runtime/bootstrap guidance
@@ -23,7 +23,7 @@ Interpretation:
 - `/CHATGPT_NEXT_STEP_NOTE.md` (latest implementation status + immediate next action)
 - `/AGENTS.md` (operating rules and engineering guardrails)
 - `/README.md` (repo boot and runtime basics)
-- `/PROJECT_HANDOVER_2026-03-03.md` (concise current repo-state handover)
+- `/PROJECT_HANDOVER.md` (concise current repo-state handover)
 - `/docs/27-Deep-Code-Audit-2026-02-24.md` (current state audit and gap report)
 - `/docs/28-M8-TV-Overlay-Contract.md` (Milestone 8 implementation contract)
 - `/docs/29-M9-Legacy-Migration-Assistant-Contract.md` (Milestone 9 implementation contract)
@@ -103,9 +103,10 @@ Older session notes were archived to:
 
 ## Historical docs
 - `/docs/README.md` remains a useful historical pack index, but it is not the primary start point for current pivot-era work.
+- Dated handover snapshots live under `/docs/handovers/`.
 
 ## Recommended next milestone
 - No further milestone is defined in the current roadmap.
 - The latest completed post-M9 hardening deltas are runtime/container baseline, migration asset access, fixture lifecycle consolidation, incremental web smoke expansion across match-night and disputes, active-docs convergence, root-doc entrypoint tightening, migration assistant validation-summary hardening, migration assistant import-preview hardening, migration assistant import-audit visibility hardening, migration assistant review draft-template hardening, migration assistant review draft-format hardening, migration assistant review unsaved-change guard hardening, migration assistant review ready-state integrity hardening, notifications admin monitoring visibility hardening, notifications admin outbox-triage hardening, venue authority/capacity baseline, and competition-policy baseline.
 - The next product backlog now lives in the roadmap section `9) Post-M9 controlled backlog`.
-- The handover summary for the current consolidated repo state is `/PROJECT_HANDOVER_2026-03-03.md`.
+- The handover summary for the current consolidated repo state is `/PROJECT_HANDOVER.md`.

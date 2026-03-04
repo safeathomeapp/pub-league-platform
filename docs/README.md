@@ -10,6 +10,9 @@ Current reading order for active work:
 2. `PIVOT_INDEX.md`
 3. `../PubLeague_Program_Schedule_Roadmap_v1.md`
 4. `../CHATGPT_NEXT_STEP_NOTE.md`
+5. `../PROJECT_HANDOVER.md`
+
+Dated handover snapshots are stored under `handovers/`.
 
 ## Legacy ordered pack (historical reference)
 This pack is ordered. Read top to bottom.

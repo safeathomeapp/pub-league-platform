@@ -6,8 +6,9 @@ This document is the authoritative roadmap for the pivot. It defines the sequenc
 
 ---
 
-## Current status checkpoint (as of 2026-03-03)
+## Current status checkpoint (as of 2026-03-04)
 - Canonical companion status doc: `/CHATGPT_NEXT_STEP_NOTE.md`.
+- Canonical stable handover doc: `/PROJECT_HANDOVER.md`.
 - Completed through Milestone 9 based on latest session docs and validation through 2026-03-03:
   - `docs/Sessions/2026-02-17_20-16-52-m5-head-to-head-league-scope.md`
   - `docs/Sessions/2026-02-17_21-06-21-m6-sponsor-slots-minimal.md`
@@ -54,6 +55,9 @@ This document is the authoritative roadmap for the pivot. It defines the sequenc
   - migration assistant review hardening across validation, preview, audit visibility, and local editor guardrails
   - venue authority baseline with team venue assignment and capacity warnings
   - season competition policy baseline with live `minimumPlayersPerMatch` enforcement
+- Product-note cross-reference status:
+  - organiser-led SaaS direction is broadly aligned
+  - next meaningful gaps are venue-aware scheduling enforcement, broader competition-policy enforcement, and organiser authority semantics
 
 ---
 
